@@ -28,20 +28,14 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [gameWon, setGameWon] = useState(false);
   const [lastGuess, setLastGuess] = useState<Intent | null>(null);
+  const [formesCanoniquesProvades, setFormesCanoniquesProvades] = useState<Set<string>>(new Set());
 
   const getPosicioColor = (posicio: number): string => {
     if (posicio < 25) return '#4caf50'; // Verd
     if (posicio < 50) return '#ffc107'; // Groc
     if (posicio < 500) return '#ff9800'; // Taronja
-    return '#f44336'; // Vermell
-  };
-
-  const getPosicioText = (posicio: number): string => {
-    if (posicio === 0) return 'Perfecte!';
-    if (posicio < 25) return 'Molt a prop';
-    if (posicio < 50) return 'A prop';
-    if (posicio < 500) return 'Llunyà';
-    return 'Molt llunyà';
+    if (posicio < 2000) return '#f44336'; // Vermell
+    return '#b71c1c'; // Vermell fosc
   };
 
   const getBackgroundStyle = (posicio: number, totalParaules: number) => {
@@ -79,6 +73,15 @@ function App() {
         return; // Aturem l'execució aquí
       }
       
+      // Comprovem si la forma canònica ja ha estat provada
+      const formaCanonicaResultant = data.forma_canonica || data.paraula;
+      if (formesCanoniquesProvades.has(formaCanonicaResultant)) {
+        setError(`Ja has provat "${formaCanonicaResultant}".`);
+        setLastGuess(null);
+        setGuess(''); // Buidem l'input en aquest cas específic
+        return; // No processem l'intent repetit
+      }
+      
       const newGuess: Intent = {
         paraula: data.paraula,
         formaCanonica: data.forma_canonica,
@@ -89,6 +92,7 @@ function App() {
       
       setLastGuess(newGuess);
       setIntents(prev => [newGuess, ...prev].sort((a, b) => a.posicio - b.posicio));
+      setFormesCanoniquesProvades(prev => new Set(prev).add(formaCanonicaResultant));
       
       setGuess('');
       if (data.es_correcta) {
@@ -145,13 +149,7 @@ function App() {
                 {lastGuess.formaCanonica && ` (${lastGuess.formaCanonica})`}
               </span>
               <div className="proximitat-info">
-                <span 
-                  className="proximitat-text"
-                  style={{ color: getPosicioColor(lastGuess.posicio) }}
-                >
-                  {getPosicioText(lastGuess.posicio)}
-                </span>
-                <span className="proximitat-valor">
+                <span className="proximitat-valor" style={{ color: getPosicioColor(lastGuess.posicio) }}>
                   #{lastGuess.posicio}
                 </span>
               </div>
@@ -170,13 +168,7 @@ function App() {
                 {intent.formaCanonica && ` (${intent.formaCanonica})`}
               </span>
               <div className="proximitat-info">
-                <span 
-                  className="proximitat-text"
-                  style={{ color: getPosicioColor(intent.posicio) }}
-                >
-                  {getPosicioText(intent.posicio)}
-                </span>
-                <span className="proximitat-valor">
+                <span className="proximitat-valor" style={{ color: getPosicioColor(intent.posicio) }}>
                   #{intent.posicio}
                 </span>
               </div>
