@@ -34,27 +34,27 @@ h3 {
 }
 
 .intents {
-  margin-top: 2rem;
+  margin-top: 0.5rem;
   width: 100%;
   max-width: 500px;
 }
 
 .last-guess {
-  margin: 0 0 1.5rem 0;
-  padding: 0.75rem;
-  background: #fff;
-  border-radius: 6px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  margin-bottom: 1rem;
+  min-height: 60px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .intent-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem;
-  margin: 0.35rem 0;
-  background: #fff;
-  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  background: #f9f9f9;
   border: 1px solid #e0e0e0;
   box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
@@ -113,7 +113,6 @@ input {
   border: 2px solid #e0e0e0;
   border-radius: 6px;
   width: 100%;
-  max-width: 300px;
   margin-right: 0.5rem;
   background: #fff;
   color: #2c3e50;
@@ -127,23 +126,7 @@ input:focus {
 }
 
 button {
-  padding: 0.75rem 1.5rem;
-  font-size: 1rem;
-  background: #3498db;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-button:hover {
-  background: #2980b9;
-}
-
-button:disabled {
-  background: #bdc3c7;
-  cursor: not-allowed;
+  display: none;
 }
 
 .error {
@@ -172,13 +155,14 @@ button:disabled {
 
 .App-header {
   background-color: #f5f5f5;
-  min-height: 20vh;
+  min-height: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   font-size: calc(10px + 2vmin);
   color: #2c3e50;
+  width: 100%;
 }
 
 .App-header p {
@@ -280,26 +264,48 @@ button:disabled {
 }
 
 .game-won button:hover {
-  background: #2980b9;
+  background: #27ae60;
 }
 
 .input-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
+  width: 100%;
+  max-width: 500px;
+  position: relative;
   margin-bottom: 1rem;
+}
+
+.input-container form {
+  width: 100%;
 }
 
 .intent-count {
   font-size: 0.9rem;
   color: #2c3e50;
-  font-weight: 500;
-  margin-bottom: 0.5rem;
+  text-align: left;
+  width: 100%;
+  margin-bottom: 0.25rem;
 }
 
 form {
   display: flex;
   gap: 0.5rem;
   align-items: center;
+}
+
+.error-item {
+  background-color: #f8d7da;
+  color: #721c24;
+  text-align: center;
+}
+
+.highlighted {
+  border: 2px solid #3498db;
+  box-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
+}
+
+.proximitat-text {
+  font-weight: bold;
 }

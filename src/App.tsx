@@ -3,51 +3,59 @@ import './App.css';
 
 interface Intent {
   paraula: string;
-  proximitat: number;
+  formaCanonica: string | null;
+  posicio: number;
+  totalParaules: number;
   esCorrecta: boolean;
-  id: number;
 }
 
 interface ErrorResponse {
   detail: string;
 }
 
-interface Guess {
-  word: string;
-  proximity: number;
-  isCorrect: boolean;
-  arrel: string;
+interface GuessResponse {
+  paraula: string;
+  forma_canonica: string | null;
+  posicio: number;
+  total_paraules: number;
+  es_correcta: boolean;
+  detail?: string;
 }
 
 function App() {
   const [guess, setGuess] = useState('');
   const [intents, setIntents] = useState<Intent[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [nextId, setNextId] = useState(0);
-  const [guesses, setGuesses] = useState<Guess[]>([]);
   const [gameWon, setGameWon] = useState(false);
-  const [fadeOutIndex, setFadeOutIndex] = useState<number | null>(null);
-  const [lastGuess, setLastGuess] = useState<Guess | null>(null);
+  const [lastGuess, setLastGuess] = useState<Intent | null>(null);
 
-  const getProximitatColor = (proximitat: number): string => {
-    if (proximitat > 0.8) return '#4caf50'; // Verd
-    if (proximitat > 0.6) return '#ff9800'; // Taronja
-    if (proximitat > 0.4) return '#ffc107'; // Groc
+  const getPosicioColor = (posicio: number): string => {
+    if (posicio < 25) return '#4caf50'; // Verd
+    if (posicio < 50) return '#ffc107'; // Groc
+    if (posicio < 500) return '#ff9800'; // Taronja
     return '#f44336'; // Vermell
   };
 
-  const getProximitatText = (proximitat: number): string => {
-    if (proximitat > 0.8) return 'Molt proper!';
-    if (proximitat > 0.6) return 'Proper';
-    if (proximitat > 0.4) return 'Llunyà';
+  const getPosicioText = (posicio: number): string => {
+    if (posicio === 0) return 'Perfecte!';
+    if (posicio < 25) return 'Molt a prop';
+    if (posicio < 50) return 'A prop';
+    if (posicio < 500) return 'Llunyà';
     return 'Molt llunyà';
   };
 
-  const getBackgroundStyle = (proximitat: number) => {
-    const color = getProximitatColor(proximitat);
+  const getBackgroundStyle = (posicio: number, totalParaules: number) => {
+    // Escala logarítmica per al percentatge de la barra.
+    // Això fa que les diferències a les posicions baixes siguin més visibles.
+    // Si posicio és 0, el percentatge és 100%.
+    // S'utilitza log(posicio + 1) per evitar log(0).
+    const percentatge = posicio === 0
+      ? 1
+      : Math.max(0, 1 - (Math.log(posicio + 1) / Math.log(totalParaules)));
+
+    const color = getPosicioColor(posicio);
     return {
-      background: `linear-gradient(to right, ${color}22 ${proximitat * 100}%, rgba(255, 255, 255, 0.1) ${proximitat * 100}%)`,
-      borderLeft: `4px solid ${color}`
+      background: `linear-gradient(to right, ${color}22 ${percentatge * 100}%, rgba(255, 255, 255, 0.1) ${percentatge * 100}%)`
     } as React.CSSProperties;
   };
 
@@ -60,37 +68,40 @@ function App() {
       const response = await fetch('http://localhost:8000/guess', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ word: trimmed })
+        body: JSON.stringify({ paraula: trimmed })
       });
-      const data = await response.json();
+      const data: GuessResponse = await response.json();
       if (!response.ok) {
-        throw new Error(data.detail || 'Error inesperat');
+        // Si l'error ve de l'API, el guardem i evitem netejar l'input
+        const errorData = data as any;
+        setError(errorData.detail || 'Error inesperat');
+        setLastGuess(null); // Amaguem l'últim intent per mostrar l'error
+        return; // Aturem l'execució aquí
       }
       
-      const newGuess = {
-        word: trimmed,
-        proximity: data.proximitat,
-        isCorrect: data.es_correcta,
-        arrel: data.arrel
+      const newGuess: Intent = {
+        paraula: data.paraula,
+        formaCanonica: data.forma_canonica,
+        posicio: data.posicio,
+        totalParaules: data.total_paraules,
+        esCorrecta: data.es_correcta
       };
       
-      // Guardar l'últim intent
       setLastGuess(newGuess);
-      
-      // Afegir a la llista d'intents
-      setGuesses(prev => [newGuess, ...prev].sort((a, b) => b.proximity - a.proximity));
+      setIntents(prev => [newGuess, ...prev].sort((a, b) => a.posicio - b.posicio));
       
       setGuess('');
       if (data.es_correcta) {
         setGameWon(true);
-        alert('Felicitats! Has encertat la paraula!');
       }
     } catch (err) {
+      // Aquest catch és per a errors de xarxa, no per a respostes de l'API
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError('Hi ha hagut un error inesperat');
+        setError('Hi ha hagut un error de xarxa inesperat');
       }
+      setLastGuess(null); // Amaguem l'últim intent també en aquests errors
     }
   };
 
@@ -100,9 +111,9 @@ function App() {
       {!gameWon ? (
         <header className="App-header">
           <div className="input-container">
-            <div className="intent-count">intent: #{guesses.length}</div>
+            <div className="intent-count">Intents: {intents.length}</div>
             <form onSubmit={handleSubmit}>
-              <input
+              <input id="guess-input"
                 type="text"
                 value={guess}
                 onChange={(e) => setGuess(e.target.value)}
@@ -114,7 +125,6 @@ function App() {
               </button>
             </form>
           </div>
-          {error && <div className="error">{error}</div>}
         </header>
       ) : (
         <div className="game-won">
@@ -123,47 +133,51 @@ function App() {
         </div>
       )}
       <div className="intents">
-        {lastGuess && (
-          <div className="last-guess">
-            <div className="intent-item highlighted" style={getBackgroundStyle(lastGuess.proximity)}>
+        <div className="last-guess">
+          {error ? (
+            <div className="intent-item error-item">
+              <span className="paraula">{error}</span>
+            </div>
+          ) : lastGuess && (
+            <div className="intent-item highlighted" style={getBackgroundStyle(lastGuess.posicio, lastGuess.totalParaules)}>
               <span className="paraula">
-                {lastGuess.word}
-                {lastGuess.word !== lastGuess.arrel && ` (${lastGuess.arrel})`}
+                {lastGuess.paraula}
+                {lastGuess.formaCanonica && ` (${lastGuess.formaCanonica})`}
               </span>
               <div className="proximitat-info">
                 <span 
                   className="proximitat-text"
-                  style={{ color: getProximitatColor(lastGuess.proximity) }}
+                  style={{ color: getPosicioColor(lastGuess.posicio) }}
                 >
-                  {getProximitatText(lastGuess.proximity)}
+                  {getPosicioText(lastGuess.posicio)}
                 </span>
                 <span className="proximitat-valor">
-                  {(lastGuess.proximity * 100).toFixed(1)}%
+                  #{lastGuess.posicio}
                 </span>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
         <ul>
-          {guesses.map((guess, idx) => (
+          {intents.map((intent, idx) => (
             <li 
               key={idx} 
-              className={`intent-item ${guess.isCorrect ? 'correct' : ''} ${guess === lastGuess ? 'highlighted' : ''}`}
-              style={getBackgroundStyle(guess.proximity)}
+              className={`intent-item ${intent.esCorrecta ? 'correct' : ''} ${intent === lastGuess ? 'highlighted' : ''}`}
+              style={getBackgroundStyle(intent.posicio, intent.totalParaules)}
             >
               <span className="paraula">
-                {guess.word}
-                {guess.word !== guess.arrel && ` (${guess.arrel})`}
+                {intent.paraula}
+                {intent.formaCanonica && ` (${intent.formaCanonica})`}
               </span>
               <div className="proximitat-info">
                 <span 
                   className="proximitat-text"
-                  style={{ color: getProximitatColor(guess.proximity) }}
+                  style={{ color: getPosicioColor(intent.posicio) }}
                 >
-                  {getProximitatText(guess.proximity)}
+                  {getPosicioText(intent.posicio)}
                 </span>
                 <span className="proximitat-valor">
-                  {(guess.proximity * 100).toFixed(1)}%
+                  #{intent.posicio}
                 </span>
               </div>
             </li>
