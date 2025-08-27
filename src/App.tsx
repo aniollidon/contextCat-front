@@ -7,6 +7,7 @@ interface Intent {
   posicio: number;
   totalParaules: number;
   esCorrecta: boolean;
+  esPista?: boolean;
 }
 
 interface ErrorResponse {
@@ -22,6 +23,13 @@ interface GuessResponse {
   detail?: string;
 }
 
+interface PistaResponse {
+  paraula: string;
+  forma_canonica: string | null;
+  posicio: number;
+  total_paraules: number;
+}
+
 function App() {
   const [guess, setGuess] = useState('');
   const [intents, setIntents] = useState<Intent[]>([]);
@@ -29,10 +37,30 @@ function App() {
   const [gameWon, setGameWon] = useState(false);
   const [lastGuess, setLastGuess] = useState<Intent | null>(null);
   const [formesCanoniquesProvades, setFormesCanoniquesProvades] = useState<Set<string>>(new Set());
+  const [pistesDonades, setPistesDonades] = useState(0);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  // Obtenir la paraula del dia de l'URL (decodificada des de Base64)
+  const getParaulaDiaFromUrl = (): string | null => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const encodedWord = urlParams.get('word');
+    if (!encodedWord) return null;
+    
+    try {
+      // Decodificar des de Base64
+      const decodedWord = atob(encodedWord);
+      return decodedWord;
+    } catch (error) {
+      console.warn('Error decodificant la paraula Base64:', error);
+      return null;
+    }
+  };
+
+  const paraulaDia = getParaulaDiaFromUrl();
 
   const getPosicioColor = (posicio: number): string => {
-    if (posicio < 25) return '#4caf50'; // Verd
-    if (posicio < 50) return '#ffc107'; // Groc
+    if (posicio < 100) return '#4caf50'; // Verd
+    if (posicio < 250) return '#ffc107'; // Groc
     if (posicio < 500) return '#ff9800'; // Taronja
     if (posicio < 2000) return '#f44336'; // Vermell
     return '#b71c1c'; // Vermell fosc
@@ -59,10 +87,15 @@ function App() {
     const trimmed = guess.trim().toLowerCase();
     if (!trimmed) return;
     try {
+      const requestBody: any = { paraula: trimmed };
+      if (paraulaDia) {
+        requestBody.paraula_dia = paraulaDia;
+      }
+
       const response = await fetch('http://localhost:8000/guess', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paraula: trimmed })
+        body: JSON.stringify(requestBody)
       });
       const data: GuessResponse = await response.json();
       if (!response.ok) {
@@ -109,13 +142,128 @@ function App() {
     }
   };
 
+  const handlePista = async () => {
+    setError(null);
+    try {
+      const requestBody: any = { intents: intents };
+      if (paraulaDia) {
+        requestBody.paraula_dia = paraulaDia;
+      }
+
+      const response = await fetch('http://localhost:8000/pista', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody)
+      });
+      const data: PistaResponse = await response.json();
+
+      if (!response.ok) {
+        const errorData = data as any;
+        setError(errorData.detail || 'Error en demanar la pista');
+        setLastGuess(null);
+        return;
+      }
+      
+      const formaCanonicaResultant = data.forma_canonica || data.paraula;
+      if (formesCanoniquesProvades.has(formaCanonicaResultant)) {
+        setError(`La pista "${formaCanonicaResultant}" ja s'havia provat.`);
+        setLastGuess(null);
+        return; 
+      }
+      
+      const newGuess: Intent = {
+        paraula: data.paraula,
+        formaCanonica: data.forma_canonica,
+        posicio: data.posicio,
+        totalParaules: data.total_paraules,
+        esCorrecta: data.posicio === 0,
+        esPista: true
+      };
+      
+      setLastGuess(newGuess);
+      setIntents(prev => [newGuess, ...prev].sort((a, b) => a.posicio - b.posicio));
+      setFormesCanoniquesProvades(prev => new Set(prev).add(formaCanonicaResultant));
+      setPistesDonades(prev => prev + 1);
+
+      if (newGuess.esCorrecta) {
+        setGameWon(true);
+      }
+
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Hi ha hagut un error de xarxa inesperat');
+      }
+      setLastGuess(null);
+    }
+  };
+
+  const toggleDropdown = () => {
+    setIsDropdownOpen(!isDropdownOpen);
+  };
+
+  const handleDropdownPista = () => {
+    setIsDropdownOpen(false);
+    handlePista();
+  };
+
+  const handleRendirse = async () => {
+    setIsDropdownOpen(false);
+    try {
+      const paraulaDiaFromUrl = getParaulaDiaFromUrl();
+      const requestBody: any = {};
+      if (paraulaDiaFromUrl) {
+        requestBody.paraula_dia = paraulaDiaFromUrl;
+      }
+
+      const response = await fetch('http://localhost:8000/rendirse', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        throw new Error('Error en rendir-se');
+      }
+
+      const data = await response.json();
+      
+      setError(`La paraula era: ${data.paraula_correcta}`);
+      setGameWon(true);
+      setLastGuess(null);
+
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Hi ha hagut un error de xarxa inesperat');
+      }
+    }
+  };
+
+  // Tancar el dropdown quan es clica fora
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('.dropdown-menu')) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
   return (
     <div className="App">
-      <h1>contextCAT</h1>
+      <h1>Rebuscada</h1>
       {!gameWon ? (
         <header className="App-header">
           <div className="input-container">
-            <div className="intent-count">Intents: {intents.length}</div>
+            <div className="intent-count">Intents: {intents.length} | Pistes: {pistesDonades}</div>
             <form onSubmit={handleSubmit}>
               <input id="guess-input"
                 type="text"
@@ -123,10 +271,40 @@ function App() {
                 onChange={(e) => setGuess(e.target.value)}
                 placeholder="Escriu una paraula..."
                 disabled={gameWon}
+                autoComplete="off"
               />
               <button type="submit" disabled={gameWon}>
                 Comprovar
               </button>
+              <div className="dropdown-menu">
+                <button 
+                  type="button" 
+                  className="dropdown-toggle"
+                  onClick={toggleDropdown}
+                  disabled={gameWon}
+                  aria-label="Menú d'opcions"
+                >
+                  ⋮
+                </button>
+                <div className={`dropdown-content ${isDropdownOpen ? 'show' : ''}`}>
+                  <button 
+                    type="button"
+                    className="dropdown-item"
+                    onClick={handleDropdownPista}
+                    disabled={gameWon}
+                  >
+                    Pista
+                  </button>
+                  <button 
+                    type="button"
+                    className="dropdown-item"
+                    onClick={handleRendirse}
+                    disabled={gameWon}
+                  >
+                    Rendir-se
+                  </button>
+                </div>
+              </div>
             </form>
           </div>
         </header>
