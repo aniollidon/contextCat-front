@@ -30,6 +30,9 @@ interface PistaResponse {
   total_paraules: number;
 }
 
+// Constant per la URL del servidor (des de variables d'entorn)
+const SERVER_URL = process.env.REACT_APP_SERVER_URL || 'http://localhost:8000';
+
 function App() {
   const [guess, setGuess] = useState('');
   const [intents, setIntents] = useState<Intent[]>([]);
@@ -92,7 +95,7 @@ function App() {
         requestBody.paraula_dia = paraulaDia;
       }
 
-      const response = await fetch('http://localhost:8000/guess', {
+      const response = await fetch(`${SERVER_URL}/guess`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody)
@@ -150,7 +153,7 @@ function App() {
         requestBody.paraula_dia = paraulaDia;
       }
 
-      const response = await fetch('http://localhost:8000/pista', {
+      const response = await fetch(`${SERVER_URL}/pista`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody)
@@ -217,7 +220,7 @@ function App() {
         requestBody.paraula_dia = paraulaDiaFromUrl;
       }
 
-      const response = await fetch('http://localhost:8000/rendirse', {
+      const response = await fetch(`${SERVER_URL}/rendirse`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
