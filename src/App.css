@@ -524,7 +524,7 @@ form button[type="submit"] {
   display: flex;
   gap: 0.4rem;
   align-items: center;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 4px solid #ffffff;
 }
 
 .ranking-list li.objectiu {
