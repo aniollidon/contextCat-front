@@ -544,6 +544,13 @@ form button[type="submit"] {
   color: #555;
 }
 
+/* Paraula solució en majúscules */
+.solution-word {
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 700;
+}
+
 .ranking-list li.objectiu .rank-pos { color: #fff; }
 
 @media (max-width: 520px) {

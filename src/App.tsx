@@ -60,7 +60,7 @@ function App() {
   const [rankingError, setRankingError] = useState<string | null>(null);
   const [rankingTotal, setRankingTotal] = useState<number | null>(null);
   const [surrendered, setSurrendered] = useState(false);
-  const [paraulaCorrecta, setParaulaCorrecta] = useState<string | null>(null);
+  const [paraulaSolucio, setParaulaSolucio] = useState<string | null>(null);
 
   // Funcions per gestionar localStorage
   const saveGameState = (gameState: GameState) => {
@@ -242,7 +242,8 @@ function App() {
       
       setGuess('');
       if (data.es_correcta) {
-        setGameWon(true);
+  setGameWon(true);
+  setParaulaSolucio(data.forma_canonica || data.paraula);
       }
     } catch (err) {
       // Aquest catch és per a errors de xarxa, no per a respostes de l'API
@@ -299,7 +300,8 @@ function App() {
       setPistesDonades(prev => prev + 1);
 
       if (newGuess.esCorrecta) {
-        setGameWon(true);
+  setGameWon(true);
+  setParaulaSolucio(newGuess.formaCanonica || newGuess.paraula);
       }
 
     } catch (err) {
@@ -343,7 +345,7 @@ function App() {
 
       const data = await response.json();
       
-  setParaulaCorrecta(data.paraula_correcta);
+  setParaulaSolucio(data.paraula_correcta);
       setGameWon(true);
       setLastGuess(null);
   setSurrendered(true);
@@ -424,9 +426,9 @@ function App() {
       ) : (
         <div className="game-won">
           {surrendered ? (
-            <h2>T'has rendit. La paraula era: <span style={{color:'#2c3e50'}}>{paraulaCorrecta}</span></h2>
+            <h2>T'has rendit. La paraula era: <span className="solution-word" style={{color:'#2c3e50'}}>{paraulaSolucio}</span></h2>
           ) : (
-            <h2>Felicitats! Has encertat la paraula rebuscada!</h2>
+            <h2>{paraulaSolucio ? <><span className="solution-word">{paraulaSolucio}</span> era la paraula rebuscada!</> : 'Has encertat la paraula rebuscada!'}</h2>
           )}
           <div className="stats">
             {(() => {
