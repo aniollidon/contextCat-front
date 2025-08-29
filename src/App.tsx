@@ -58,6 +58,9 @@ function App() {
   const [ranking, setRanking] = useState<{ paraula: string; posicio: number }[]>([]);
   const [loadingRanking, setLoadingRanking] = useState(false);
   const [rankingError, setRankingError] = useState<string | null>(null);
+  const [rankingTotal, setRankingTotal] = useState<number | null>(null);
+  const [surrendered, setSurrendered] = useState(false);
+  const [paraulaCorrecta, setParaulaCorrecta] = useState<string | null>(null);
 
   // Funcions per gestionar localStorage
   const saveGameState = (gameState: GameState) => {
@@ -340,9 +343,10 @@ function App() {
 
       const data = await response.json();
       
-      setError(`La paraula era: ${data.paraula_correcta}`);
+  setParaulaCorrecta(data.paraula_correcta);
       setGameWon(true);
       setLastGuess(null);
+  setSurrendered(true);
 
     } catch (err) {
       if (err instanceof Error) {
@@ -419,7 +423,11 @@ function App() {
         </header>
       ) : (
         <div className="game-won">
-          <h2>Felicitats! Has encertat la paraula!</h2>
+          {surrendered ? (
+            <h2>T'has rendit. La paraula era: <span style={{color:'#2c3e50'}}>{paraulaCorrecta}</span></h2>
+          ) : (
+            <h2>Felicitats! Has encertat la paraula!</h2>
+          )}
           <div className="stats">
             {(() => {
               // Comptar per color (mateixes condicions que getPosicioColor)
@@ -460,6 +468,7 @@ function App() {
                   if (!resp.ok) throw new Error('No s\'ha pogut obtenir el rànquing');
                   const data = await resp.json();
                   setRanking(data.ranking || []);
+                  setRankingTotal(data.total_paraules || null);
                 } catch (e: any) {
                   setRankingError(e.message);
                 } finally {
@@ -471,17 +480,27 @@ function App() {
           {showRanking && (
             <div className="ranking-modal" role="dialog" aria-modal="true">
               <div className="ranking-content">
-                <h3>Top 300</h3>
+                <h3>Top 300 {paraulaDiaActual && paraulaDiaActual !== 'default' ? `(${paraulaDiaActual})` : ''}</h3>
                 <button className="close" onClick={() => setShowRanking(false)}>×</button>
                 {loadingRanking && <p>Carregant...</p>}
                 {rankingError && <p className="error">{rankingError}</p>}
                 {!loadingRanking && !rankingError && (
                   <ol className="ranking-list">
-                    {ranking.map(item => (
-                      <li key={item.paraula} className={item.posicio === 0 ? 'objectiu' : ''}>
-                        <span className="rank-pos">#{item.posicio}</span> {item.paraula}
-                      </li>
-                    ))}
+                    {ranking.map(item => {
+                      const bgStyle = rankingTotal !== null ? getBackgroundStyle(item.posicio, rankingTotal) : undefined;
+                      return (
+                        <li 
+                          key={item.paraula} 
+                          className={item.posicio === 0 ? 'objectiu' : ''}
+                          style={item.posicio === 0 ? undefined : bgStyle}
+                        >
+                          <span className="rank-pos" style={{color: item.posicio === 0 ? '#fff' : getPosicioColor(item.posicio)}}>
+                            #{item.posicio}
+                          </span>
+                          <span>{item.paraula}</span>
+                        </li>
+                      );
+                    })}
                   </ol>
                 )}
               </div>
