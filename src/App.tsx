@@ -54,6 +54,10 @@ function App() {
   const [pistesDonades, setPistesDonades] = useState(0);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [paraulaDiaActual, setParaulaDiaActual] = useState<string | null>(null);
+  const [showRanking, setShowRanking] = useState(false);
+  const [ranking, setRanking] = useState<{ paraula: string; posicio: number }[]>([]);
+  const [loadingRanking, setLoadingRanking] = useState(false);
+  const [rankingError, setRankingError] = useState<string | null>(null);
 
   // Funcions per gestionar localStorage
   const saveGameState = (gameState: GameState) => {
@@ -416,10 +420,73 @@ function App() {
       ) : (
         <div className="game-won">
           <h2>Felicitats! Has encertat la paraula!</h2>
-          <button onClick={() => {
-            clearGameState();
-            window.location.reload();
-          }}>Jugar de nou</button>
+          <div className="stats">
+            {(() => {
+              // Comptar per color (mateixes condicions que getPosicioColor)
+              const counters = { verd: 0, groc: 0, taronja: 0, vermell: 0, vermellFosc: 0 };
+              intents.forEach(i => {
+                if (i.posicio < 100) counters.verd++;
+                else if (i.posicio < 250) counters.groc++;
+                else if (i.posicio < 500) counters.taronja++;
+                else if (i.posicio < 2000) counters.vermell++;
+                else counters.vermellFosc++;
+              });
+              const total = intents.length || 1;
+              return (
+                <ul className="color-stats">
+                  <li><span className="color-box" style={{ background: '#4caf50' }} /> <strong>{counters.verd}</strong> (&lt;100)</li>
+                  <li><span className="color-box" style={{ background: '#ffc107' }} /> <strong>{counters.groc}</strong> (100-249)</li>
+                  <li><span className="color-box" style={{ background: '#ff9800' }} /> <strong>{counters.taronja}</strong> (250-499)</li>
+                  <li><span className="color-box" style={{ background: '#f44336' }} /> <strong>{counters.vermell}</strong> (500-1999)</li>
+                  <li><span className="color-box" style={{ background: '#b71c1c' }} /> <strong>{counters.vermellFosc}</strong> (≥2000)</li>
+                </ul>
+              );
+            })()}
+            <p>Total intents: {intents.length} | Pistes utilitzades: {pistesDonades}</p>
+          </div>
+          <div className="win-actions">
+            <button onClick={() => {
+              clearGameState();
+              window.location.reload();
+            }}>Jugar de nou</button>
+            <button onClick={async () => {
+              setShowRanking(true);
+              if (ranking.length === 0) {
+                setLoadingRanking(true);
+                setRankingError(null);
+                try {
+                  const params = paraulaDiaActual && paraulaDiaActual !== 'default' ? `?paraula_dia=${encodeURIComponent(paraulaDiaActual)}` : '';
+                  const resp = await fetch(`${SERVER_URL}/ranking${params}`);
+                  if (!resp.ok) throw new Error('No s\'ha pogut obtenir el rànquing');
+                  const data = await resp.json();
+                  setRanking(data.ranking || []);
+                } catch (e: any) {
+                  setRankingError(e.message);
+                } finally {
+                  setLoadingRanking(false);
+                }
+              }
+            }}>Veure top 300</button>
+          </div>
+          {showRanking && (
+            <div className="ranking-modal" role="dialog" aria-modal="true">
+              <div className="ranking-content">
+                <h3>Top 300</h3>
+                <button className="close" onClick={() => setShowRanking(false)}>×</button>
+                {loadingRanking && <p>Carregant...</p>}
+                {rankingError && <p className="error">{rankingError}</p>}
+                {!loadingRanking && !rankingError && (
+                  <ol className="ranking-list">
+                    {ranking.map(item => (
+                      <li key={item.paraula} className={item.posicio === 0 ? 'objectiu' : ''}>
+                        <span className="rank-pos">#{item.posicio}</span> {item.paraula}
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
       <div className="intents">

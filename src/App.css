@@ -400,3 +400,156 @@ form button[type="submit"] {
 .dropdown-item:last-child {
   border-radius: 0 0 4px 4px;
 }
+
+/* Estadístiques de colors al final del joc */
+.stats {
+  margin: 1rem 0 1.5rem;
+}
+
+.color-stats {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  justify-content: center;
+}
+
+.color-stats li {
+  font-size: 0.85rem;
+  background: #fff;
+  padding: 0.35rem 0.6rem;
+  border-radius: 4px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.color-box {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.15);
+}
+
+.win-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.win-actions button {
+  background: #3498db;
+  color: #fff;
+  border: none;
+  padding: 0.6rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.win-actions button:hover {
+  background: #2980b9;
+}
+
+.win-actions button:active { transform: scale(0.96); }
+
+/* Modal del rànquing */
+.ranking-modal {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 3rem 1rem 2rem;
+  z-index: 2000;
+  overflow-y: auto;
+}
+
+.ranking-content {
+  background: #fff;
+  width: 100%;
+  max-width: 420px;
+  border-radius: 10px;
+  padding: 1.25rem 1.25rem 1.5rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  position: relative;
+  animation: popin 0.25s ease;
+}
+
+@keyframes popin { from { opacity: 0; transform: translateY(10px);} to { opacity: 1; transform: translateY(0);} }
+
+.ranking-content h3 {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.ranking-content .close {
+  position: absolute;
+  top: 6px; right: 8px;
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: #666;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  transition: background 0.15s ease;
+}
+
+.ranking-content .close:hover { background: #f2f2f2; }
+
+.ranking-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 60vh;
+  overflow-y: auto;
+  font-size: 0.9rem;
+  border-top: 1px solid #eee;
+}
+
+.ranking-list li {
+  padding: 0.4rem 0.2rem 0.4rem 0.4rem;
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.ranking-list li.objectiu {
+  background: linear-gradient(120deg, #2ecc71, #27ae60);
+  color: #fff;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.ranking-list li:last-child { border-bottom: none; }
+
+.rank-pos {
+  font-weight: 600;
+  min-width: 48px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: #555;
+}
+
+.ranking-list li.objectiu .rank-pos { color: #fff; }
+
+@media (max-width: 520px) {
+  .ranking-content { max-width: 100%; }
+  .color-stats { justify-content: flex-start; }
+  .ranking-modal { align-items: flex-start; }
+}
