@@ -509,25 +509,27 @@ function App() {
         </div>
       )}
       <div className="intents">
-        <div className="last-guess">
-          {error ? (
-            <div className="intent-item error-item">
-              <span className="paraula">{error}</span>
-            </div>
-          ) : lastGuess && (
-            <div className="intent-item highlighted" style={getBackgroundStyle(lastGuess.posicio, lastGuess.totalParaules)}>
-              <span className="paraula">
-                {lastGuess.paraula}
-                {lastGuess.formaCanonica && ` (${lastGuess.formaCanonica})`}
-              </span>
-              <div className="proximitat-info">
-                <span className="proximitat-valor" style={{ color: getPosicioColor(lastGuess.posicio) }}>
-                  #{lastGuess.posicio}
-                </span>
+        {!gameWon && (
+          <div className="last-guess">
+            {error ? (
+              <div className="intent-item error-item">
+                <span className="paraula">{error}</span>
               </div>
-            </div>
-          )}
-        </div>
+            ) : lastGuess && (
+              <div className="intent-item highlighted" style={getBackgroundStyle(lastGuess.posicio, lastGuess.totalParaules)}>
+                <span className="paraula">
+                  {lastGuess.paraula}
+                  {lastGuess.formaCanonica && ` (${lastGuess.formaCanonica})`}
+                </span>
+                <div className="proximitat-info">
+                  <span className="proximitat-valor" style={{ color: getPosicioColor(lastGuess.posicio) }}>
+                    #{lastGuess.posicio}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         <ul>
           {intents.map((intent, idx) => (
             <li 
