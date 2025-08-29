@@ -426,7 +426,7 @@ function App() {
           {surrendered ? (
             <h2>T'has rendit. La paraula era: <span style={{color:'#2c3e50'}}>{paraulaCorrecta}</span></h2>
           ) : (
-            <h2>Felicitats! Has encertat la paraula!</h2>
+            <h2>Felicitats! Has encertat la paraula rebuscada!</h2>
           )}
           <div className="stats">
             {(() => {
