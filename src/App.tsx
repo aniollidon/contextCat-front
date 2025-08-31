@@ -15,7 +15,7 @@ interface GameState {
   formesCanoniquesProvades: string[];
   pistesDonades: number;
   gameWon: boolean;
-  paraulaDia: string;
+  rebuscada: string;
 }
 
 interface ErrorResponse {
@@ -53,7 +53,7 @@ function App() {
   const [formesCanoniquesProvades, setFormesCanoniquesProvades] = useState<Set<string>>(new Set());
   const [pistesDonades, setPistesDonades] = useState(0);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [paraulaDiaActual, setParaulaDiaActual] = useState<string | null>(null);
+  const [rebuscadaActual, setRebuscadaActual] = useState<string | null>(null);
   const [showRanking, setShowRanking] = useState(false);
   const [ranking, setRanking] = useState<{ paraula: string; posicio: number }[]>([]);
   const [loadingRanking, setLoadingRanking] = useState(false);
@@ -90,7 +90,7 @@ function App() {
   };
 
   // Obtenir la paraula del dia de l'URL (decodificada des de Base64)
-  const getParaulaDiaFromUrl = (): string | null => {
+  const getRebuscadaFromUrl = (): string | null => {
     const urlParams = new URLSearchParams(window.location.search);
     const encodedWord = urlParams.get('word');
     if (!encodedWord) return null;
@@ -106,7 +106,7 @@ function App() {
   };
 
   // Obtenir la paraula del dia del servidor
-  const getParaulaDiaFromServer = async (): Promise<string | null> => {
+  const getRebuscadaFromServer = async (): Promise<string | null> => {
     try {
       const response = await fetch(`${SERVER_URL}/paraula-dia`);
       if (response.ok) {
@@ -120,31 +120,31 @@ function App() {
   };
 
   // Obtenir la paraula del dia actual (prioritzant URL sobre servidor)
-  const getCurrentParaulaDia = async (): Promise<string> => {
-    const urlWord = getParaulaDiaFromUrl();
+  const getCurrentRebuscada = async (): Promise<string> => {
+    const urlWord = getRebuscadaFromUrl();
     if (urlWord) return urlWord;
     
-    const serverWord = await getParaulaDiaFromServer();
+    const serverWord = await getRebuscadaFromServer();
     return serverWord || 'default';
   };
 
-  const paraulaDia = getParaulaDiaFromUrl();
+  const rebuscada = getRebuscadaFromUrl();
 
   // Inicialitzar l'estat del joc
   useEffect(() => {
     const initializeGame = async () => {
-      const currentWord = await getCurrentParaulaDia();
-      setParaulaDiaActual(currentWord);
+      const currentWord = await getCurrentRebuscada();
+      setRebuscadaActual(currentWord);
       
       const savedState = loadGameState();
       
       // Si hi ha estat guardat i la paraula del dia és la mateixa, carreguem l'estat
-      if (savedState && savedState.paraulaDia === currentWord) {
+      if (savedState && savedState.rebuscada === currentWord) {
         setIntents(savedState.intents);
         setFormesCanoniquesProvades(new Set(savedState.formesCanoniquesProvades));
         setPistesDonades(savedState.pistesDonades);
         setGameWon(savedState.gameWon);
-      } else if (savedState && savedState.paraulaDia !== currentWord) {
+      } else if (savedState && savedState.rebuscada !== currentWord) {
         // Si la paraula ha canviat, netegem l'estat guardat
         clearGameState();
       }
@@ -155,13 +155,13 @@ function App() {
 
   // Guardar l'estat cada cop que canvien les dades importants
   useEffect(() => {
-    if (paraulaDiaActual) {
+    if (rebuscadaActual) {
       const gameState: GameState = {
         intents,
         formesCanoniquesProvades: Array.from(formesCanoniquesProvades),
         pistesDonades,
         gameWon,
-        paraulaDia: paraulaDiaActual
+        rebuscada: rebuscadaActual
       };
       
       // Només guardem si hi ha algun intent o el joc s'ha guanyat
@@ -169,7 +169,7 @@ function App() {
         saveGameState(gameState);
       }
     }
-  }, [intents, formesCanoniquesProvades, pistesDonades, gameWon, paraulaDiaActual]);
+  }, [intents, formesCanoniquesProvades, pistesDonades, gameWon, rebuscadaActual]);
 
   const getPosicioColor = (posicio: number): string => {
     if (posicio < 100) return '#4caf50'; // Verd
@@ -201,8 +201,8 @@ function App() {
     if (!trimmed) return;
     try {
       const requestBody: any = { paraula: trimmed };
-      if (paraulaDiaActual && paraulaDiaActual !== 'default') {
-        requestBody.paraula_dia = paraulaDiaActual;
+      if (rebuscadaActual && rebuscadaActual !== 'default') {
+        requestBody.rebuscada = rebuscadaActual;
       }
 
       const response = await fetch(`${SERVER_URL}/guess`, {
@@ -222,7 +222,14 @@ function App() {
       // Comprovem si la forma canònica ja ha estat provada
       const formaCanonicaResultant = data.forma_canonica || data.paraula;
       if (formesCanoniquesProvades.has(formaCanonicaResultant)) {
-        setError(`Ja has provat "${formaCanonicaResultant}".`);
+        // Comprovem si és exactament la mateixa paraula que ja s'havia provat
+        const paraulaJaProvada = intents.some(i => i.paraula === data.paraula);
+        if (paraulaJaProvada) {
+          setError(`Ja s'ha trobat "${data.paraula}".`);
+        } else {
+          // És una nova paraula però la seva forma canònica (arrel) ja s'havia trobat
+          setError(`Ja s'ha trobat l'arrel de "${data.paraula}" (${formaCanonicaResultant}).`);
+        }
         setLastGuess(null);
         setGuess(''); // Buidem l'input en aquest cas específic
         return; // No processem l'intent repetit
@@ -260,8 +267,8 @@ function App() {
     setError(null);
     try {
       const requestBody: any = { intents: intents };
-      if (paraulaDiaActual && paraulaDiaActual !== 'default') {
-        requestBody.paraula_dia = paraulaDiaActual;
+      if (rebuscadaActual && rebuscadaActual !== 'default') {
+        requestBody.rebuscada = rebuscadaActual;
       }
 
       const response = await fetch(`${SERVER_URL}/pista`, {
@@ -327,8 +334,8 @@ function App() {
     setIsDropdownOpen(false);
     try {
       const requestBody: any = {};
-      if (paraulaDiaActual && paraulaDiaActual !== 'default') {
-        requestBody.paraula_dia = paraulaDiaActual;
+      if (rebuscadaActual && rebuscadaActual !== 'default') {
+        requestBody.rebuscada = rebuscadaActual;
       }
 
       const response = await fetch(`${SERVER_URL}/rendirse`, {
@@ -465,7 +472,7 @@ function App() {
                 setLoadingRanking(true);
                 setRankingError(null);
                 try {
-                  const params = paraulaDiaActual && paraulaDiaActual !== 'default' ? `?paraula_dia=${encodeURIComponent(paraulaDiaActual)}` : '';
+                  const params = rebuscadaActual && rebuscadaActual !== 'default' ? `?rebuscada=${encodeURIComponent(rebuscadaActual)}` : '';
                   const resp = await fetch(`${SERVER_URL}/ranking${params}`);
                   if (!resp.ok) throw new Error('No s\'ha pogut obtenir el rànquing');
                   const data = await resp.json();
@@ -482,7 +489,7 @@ function App() {
           {showRanking && (
             <div className="ranking-modal" role="dialog" aria-modal="true">
               <div className="ranking-content">
-                <h3>Top 300 {paraulaDiaActual && paraulaDiaActual !== 'default' ? `(${paraulaDiaActual})` : ''}</h3>
+                <h3>Top 300 {rebuscadaActual && rebuscadaActual !== 'default' ? `(${rebuscadaActual})` : ''}</h3>
                 <button className="close" onClick={() => setShowRanking(false)}>×</button>
                 {loadingRanking && <p>Carregant...</p>}
                 {rankingError && <p className="error">{rankingError}</p>}
