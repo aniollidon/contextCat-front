@@ -22,6 +22,11 @@ interface ErrorResponse {
   detail: string;
 }
 
+  interface WhyNotResponse {
+    raó: string;
+    suggeriments: string[] | null;
+  }
+
 interface GuessResponse {
   paraula: string;
   forma_canonica: string | null;
@@ -48,6 +53,10 @@ function App() {
   const [guess, setGuess] = useState('');
   const [intents, setIntents] = useState<Intent[]>([]);
   const [error, setError] = useState<string | null>(null);
+    const [invalidWord, setInvalidWord] = useState<string | null>(null);
+    const [showWhyNot, setShowWhyNot] = useState(false);
+    const [whyNotData, setWhyNotData] = useState<WhyNotResponse | null>(null);
+    const [loadingWhyNot, setLoadingWhyNot] = useState(false);
   const [gameWon, setGameWon] = useState(false);
   const [lastGuess, setLastGuess] = useState<Intent | null>(null);
   const [formesCanoniquesProvades, setFormesCanoniquesProvades] = useState<Set<string>>(new Set());
@@ -215,9 +224,13 @@ function App() {
         // Si l'error ve de l'API, el guardem i evitem netejar l'input
         const errorData = data as any;
         setError(errorData.detail || 'Error inesperat');
+          setInvalidWord(trimmed); // Guardem la paraula invàlida per /whynot
         setLastGuess(null); // Amaguem l'últim intent per mostrar l'error
         return; // Aturem l'execució aquí
       }
+      
+        // Si tot va bé, netegem la paraula invàlida
+        setInvalidWord(null);
       
       // Comprovem si la forma canònica ja ha estat provada
       const formaCanonicaResultant = data.forma_canonica || data.paraula;
@@ -262,6 +275,54 @@ function App() {
       setLastGuess(null); // Amaguem l'últim intent també en aquests errors
     }
   };
+
+    const handleWhyNot = async () => {
+      if (!invalidWord) return;
+    
+      setLoadingWhyNot(true);
+      setShowWhyNot(true);
+      setWhyNotData(null);
+    
+      try {
+        const requestBody: any = { paraula: invalidWord };
+        if (rebuscadaActual && rebuscadaActual !== 'default') {
+          requestBody.rebuscada = rebuscadaActual;
+        }
+
+        const response = await fetch(`${SERVER_URL}/whynot`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody)
+        });
+      
+        if (!response.ok) {
+          throw new Error('No s\'ha pogut obtenir l\'explicació');
+        }
+      
+        const data: WhyNotResponse = await response.json();
+        setWhyNotData(data);
+      } catch (err) {
+        console.error('Error obtenint explicació:', err);
+        setWhyNotData({
+          raó: 'No s\'ha pogut obtenir l\'explicació.',
+          suggeriments: null
+        });
+      } finally {
+        setLoadingWhyNot(false);
+      }
+    };
+
+    const handleSuggestionClick = (suggestion: string) => {
+      setGuess(suggestion);
+      setShowWhyNot(false);
+      setError(null);
+      setInvalidWord(null);
+      // Focus a l'input
+      setTimeout(() => {
+        const input = document.getElementById('guess-input') as HTMLInputElement;
+        if (input) input.focus();
+      }, 100);
+    };
 
   const handlePista = async () => {
     setError(null);
@@ -523,6 +584,15 @@ function App() {
             {error ? (
               <div className="intent-item error-item">
                 <span className="paraula">{error}</span>
+                  {invalidWord && (
+                    <button 
+                      className="why-not-link" 
+                      onClick={handleWhyNot}
+                      aria-label="Per què no és vàlida?"
+                    >
+                      Per què?
+                    </button>
+                  )}
               </div>
             ) : lastGuess && (
               <div className="intent-item highlighted" style={getBackgroundStyle(lastGuess.posicio, lastGuess.totalParaules)}>
@@ -559,6 +629,41 @@ function App() {
           ))}
         </ul>
       </div>
+      
+        {/* Modal de Why Not */}
+        {showWhyNot && (
+          <div className="why-not-modal" role="dialog" aria-modal="true">
+            <div className="why-not-content">
+              <h3>Per què "{invalidWord}" no és vàlida?</h3>
+              <button className="close" onClick={() => setShowWhyNot(false)}>×</button>
+            
+              {loadingWhyNot && <p>Carregant explicació...</p>}
+            
+              {!loadingWhyNot && whyNotData && (
+                <>
+                  <p className="explanation">{whyNotData.raó}</p>
+                
+                  {whyNotData.suggeriments && whyNotData.suggeriments.length > 0 && (
+                    <div className="suggestions">
+                      <h4>Potser volies dir:</h4>
+                      <div className="suggestions-list">
+                        {whyNotData.suggeriments.map((sugg, idx) => (
+                          <button
+                            key={idx}
+                            className="suggestion-item"
+                            onClick={() => handleSuggestionClick(sugg)}
+                          >
+                            {sugg}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        )}
     </div>
   );
 }

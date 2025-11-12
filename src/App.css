@@ -1,7 +1,7 @@
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -56,7 +56,7 @@ h3 {
   margin-bottom: 0.5rem;
   background: #f9f9f9;
   border: 1px solid #e0e0e0;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .intent-item.highlighted {
@@ -233,10 +233,9 @@ input:focus {
   padding: 2rem;
   background: #fff;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   margin-top: 2rem;
   margin-bottom: 20px;
-
 }
 
 .game-won h2 {
@@ -355,7 +354,7 @@ form button[type="submit"] {
   position: absolute;
   background-color: white;
   min-width: 120px;
-  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
   border-radius: 4px;
   z-index: 1000;
   right: 0;
@@ -419,7 +418,7 @@ form button[type="submit"] {
   background: #fff;
   padding: 0.35rem 0.6rem;
   border-radius: 4px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -429,7 +428,7 @@ form button[type="submit"] {
   width: 14px;
   height: 14px;
   border-radius: 3px;
-  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.15);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
 }
 
 .win-actions {
@@ -456,13 +455,18 @@ form button[type="submit"] {
   background: #2980b9;
 }
 
-.win-actions button:active { transform: scale(0.96); }
+.win-actions button:active {
+  transform: scale(0.96);
+}
 
 /* Modal del rànquing */
 .ranking-modal {
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.45);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -477,12 +481,21 @@ form button[type="submit"] {
   max-width: 420px;
   border-radius: 10px;
   padding: 1.25rem 1.25rem 1.5rem;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   position: relative;
   animation: popin 0.25s ease;
 }
 
-@keyframes popin { from { opacity: 0; transform: translateY(10px);} to { opacity: 1; transform: translateY(0);} }
+@keyframes popin {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
 .ranking-content h3 {
   margin-top: 0;
@@ -494,7 +507,8 @@ form button[type="submit"] {
 
 .ranking-content .close {
   position: absolute;
-  top: 6px; right: 8px;
+  top: 6px;
+  right: 8px;
   background: none;
   border: none;
   font-size: 1.2rem;
@@ -505,7 +519,9 @@ form button[type="submit"] {
   transition: background 0.15s ease;
 }
 
-.ranking-content .close:hover { background: #f2f2f2; }
+.ranking-content .close:hover {
+  background: #f2f2f2;
+}
 
 .ranking-list {
   list-style: none;
@@ -534,7 +550,9 @@ form button[type="submit"] {
   z-index: 2;
 }
 
-.ranking-list li:last-child { border-bottom: none; }
+.ranking-list li:last-child {
+  border-bottom: none;
+}
 
 .rank-pos {
   font-weight: 600;
@@ -551,10 +569,158 @@ form button[type="submit"] {
   font-weight: 700;
 }
 
-.ranking-list li.objectiu .rank-pos { color: #fff; }
+.ranking-list li.objectiu .rank-pos {
+  color: #fff;
+}
+
+/* Why Not Modal */
+.why-not-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.why-not-content {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  max-width: 500px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+
+.why-not-content h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #2c3e50;
+  font-size: 1.3rem;
+  word-break: break-word;
+}
+
+.why-not-content .close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  border: none;
+  background: transparent;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #666;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  transition: background 0.15s ease;
+}
+
+.why-not-content .close:hover {
+  background: #f2f2f2;
+}
+
+.why-not-content .explanation {
+  font-size: 1rem;
+  color: #555;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+  text-align: left;
+}
+
+.suggestions {
+  text-align: left;
+  margin-top: 1.5rem;
+}
+
+.suggestions h4 {
+  font-size: 1rem;
+  color: #34495e;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+}
+
+.suggestions-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.suggestion-item {
+  background: #3498db;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(52, 152, 219, 0.2);
+}
+
+.suggestion-item:hover {
+  background: #2980b9;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+}
+
+.suggestion-item:active {
+  transform: translateY(0);
+}
+
+/* Botó "Per què?" */
+.why-not-link {
+  background: transparent;
+  border: none;
+  color: #3498db;
+  font-size: 0.9rem;
+  cursor: pointer;
+  text-decoration: underline;
+  margin-left: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.why-not-link:hover {
+  color: #2980b9;
+}
+
+.error-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
 
 @media (max-width: 520px) {
-  .ranking-content { max-width: 100%; }
-  .color-stats { justify-content: flex-start; }
-  .ranking-modal { align-items: flex-start; }
+  .ranking-content {
+    max-width: 100%;
+  }
+  .color-stats {
+    justify-content: flex-start;
+  }
+  .ranking-modal {
+    align-items: flex-start;
+  }
+
+  .why-not-content {
+    padding: 1.5rem;
+  }
+
+  .suggestions-list {
+    gap: 0.4rem;
+  }
+
+  .suggestion-item {
+    font-size: 0.9rem;
+    padding: 0.45rem 0.85rem;
+  }
 }
