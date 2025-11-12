@@ -677,20 +677,26 @@ form button[type="submit"] {
 
 /* Botó "Per què?" */
 .why-not-link {
-  background: transparent;
   border: none;
-  color: #3498db;
-  font-size: 0.9rem;
+  color: #b71c3f;
+  background: transparent;
   cursor: pointer;
-  text-decoration: underline;
-  margin-left: 0.5rem;
-  padding: 0.25rem 0.5rem;
-  font-weight: 500;
   transition: color 0.2s ease;
+  display: inline-flex; /* Permet centrar el contingut intern */
+  align-items: center; /* Centra verticalment l'SVG respecte a la caixa del botó */
+  justify-content: center;
+  line-height: 1; /* Evita extra espai vertical */
+  vertical-align: middle; /* Millora alineació amb text adjacent */
+  padding: 0; /* Manté el botó compacte al voltant de l'icona */
 }
 
 .why-not-link:hover {
-  color: #2980b9;
+  color: #dd0435;
+}
+
+/* Assegura que l'SVG no es col·loqui sobre la línia de base i quedi centrat */
+.why-not-link svg {
+  display: block;
 }
 
 .error-item {
