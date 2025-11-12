@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 
 interface Intent {
@@ -50,6 +50,7 @@ const SERVER_URL = process.env.REACT_APP_SERVER_URL || 'http://localhost:8000';
 const GAME_STATE_KEY = 'rebuscada-game-state';
 
 function App() {
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const [guess, setGuess] = useState('');
   const [intents, setIntents] = useState<Intent[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -204,7 +205,8 @@ function App() {
   };
 
   // Envia una paraula al backend (reutilitzat per submit i per clic de suggeriment)
-  const submitWord = async (word: string) => {
+  const submitWord = async (word: string, options?: { keepInput?: boolean }) => {
+    const keepInput = options?.keepInput ?? false;
     setError(null);
     const trimmed = (word || '').trim().toLowerCase();
     if (!trimmed) return;
@@ -244,7 +246,11 @@ function App() {
           setError(`Ja s'ha trobat l'arrel de "${data.paraula}" (${formaCanonicaResultant}).`);
         }
         setLastGuess(null);
-        setGuess(''); // Buidem l'input en aquest cas específic
+        if (!keepInput) {
+          setGuess(''); // Buidem l'input en aquest cas específic
+        } else {
+          setGuess(word);
+        }
         return; // No processem l'intent repetit
       }
 
@@ -260,7 +266,11 @@ function App() {
       setIntents(prev => [newGuess, ...prev].sort((a, b) => a.posicio - b.posicio));
       setFormesCanoniquesProvades(prev => new Set(prev).add(formaCanonicaResultant));
 
-      setGuess('');
+      if (!keepInput) {
+        setGuess('');
+      } else {
+        setGuess(word);
+      }
       if (data.es_correcta) {
         setGameWon(true);
         setParaulaSolucio(data.forma_canonica || data.paraula);
@@ -321,7 +331,21 @@ function App() {
       setShowWhyNot(false);
       setError(null);
       setInvalidWord(null);
-      await submitWord(suggestion);
+      setGuess(suggestion);
+      // Porta el focus a l'input i selecciona tot
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+          inputRef.current.select();
+        }
+      }, 0);
+      await submitWord(suggestion, { keepInput: true });
+    };
+
+    const handleInputFocus = () => {
+      if (inputRef.current) {
+        inputRef.current.select();
+      }
     };
 
   const handlePista = async () => {
@@ -452,6 +476,8 @@ function App() {
                 type="text"
                 value={guess}
                 onChange={(e) => setGuess(e.target.value)}
+                ref={inputRef}
+                onFocus={handleInputFocus}
                 placeholder="Escriu una paraula..."
                 disabled={gameWon}
                 autoComplete="off"
