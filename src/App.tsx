@@ -1123,7 +1123,7 @@ function App() {
       {competitionInfo && (
         <div className="competition-sidebar">
           <div className="sidebar-header">
-            <h3>Jugadors</h3>
+            <h3>Competició</h3>
             <button 
               className="close-competition-btn"
               onClick={() => setShowLeaveConfirm(true)}
