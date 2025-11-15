@@ -3,11 +3,11 @@ import './App.css';
 
 interface Intent {
   paraula: string;
-  formaCanonica: string | null;
+  forma_canonica: string | null;
   posicio: number;
-  totalParaules: number;
-  esCorrecta: boolean;
-  esPista?: boolean;
+  total_paraules: number;
+  es_correcta: boolean;
+  es_pista?: boolean;
 }
 
 interface GameState {
@@ -22,10 +22,24 @@ interface ErrorResponse {
   detail: string;
 }
 
-  interface WhyNotResponse {
-    raó: string;
-    suggeriments: string[] | null;
-  }
+interface WhyNotResponse {
+  raó: string;
+  suggeriments: string[] | null;
+}
+
+interface PlayerCompetition {
+  nom: string;
+  intents: number;
+  pistes: number;
+  estat_joc: string;  // "jugant", "guanyat" o "rendit"
+  millor_posicio: number | null;
+}
+
+interface CompetitionInfo {
+  comp_id: string;
+  rebuscada: string;
+  nom_jugador: string;
+}
 
 interface GuessResponse {
   paraula: string;
@@ -46,8 +60,9 @@ interface PistaResponse {
 // Constant per la URL del servidor (des de variables d'entorn)
 const SERVER_URL = process.env.REACT_APP_SERVER_URL || 'http://localhost:8000';
 
-// Clau per localStorage
+// Claus per localStorage
 const GAME_STATE_KEY = 'rebuscada-game-state';
+const COMPETITION_KEY = 'rebuscada-competition';
 
 function App() {
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -71,6 +86,20 @@ function App() {
   const [rankingTotal, setRankingTotal] = useState<number | null>(null);
   const [surrendered, setSurrendered] = useState(false);
   const [paraulaSolucio, setParaulaSolucio] = useState<string | null>(null);
+
+  // Estats per mode competitiu
+  const [showCompetitionModal, setShowCompetitionModal] = useState(false);
+  const [showCompetitionExplanation, setShowCompetitionExplanation] = useState(false);
+  const [competitionInfo, setCompetitionInfo] = useState<CompetitionInfo | null>(null);
+  const [competitionPlayers, setCompetitionPlayers] = useState<PlayerCompetition[]>([]);
+  const [wsConnection, setWsConnection] = useState<WebSocket | null>(null);
+  const [showNamePrompt, setShowNamePrompt] = useState(false);
+  const [playerName, setPlayerName] = useState('');
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [showSwitchCompetition, setShowSwitchCompetition] = useState(false);
+  const [pendingCompId, setPendingCompId] = useState<string | null>(null);
+  const [showExpiredCompetition, setShowExpiredCompetition] = useState(false);
 
   // Funcions per gestionar localStorage
   const saveGameState = (gameState: GameState) => {
@@ -99,6 +128,43 @@ function App() {
     }
   };
 
+  const saveCompetitionInfo = (info: CompetitionInfo) => {
+    try {
+      localStorage.setItem(COMPETITION_KEY, JSON.stringify(info));
+    } catch (error) {
+      console.warn('Error guardant info de competició:', error);
+    }
+  };
+
+  const loadCompetitionInfo = (): CompetitionInfo | null => {
+    try {
+      const saved = localStorage.getItem(COMPETITION_KEY);
+      return saved ? JSON.parse(saved) : null;
+    } catch (error) {
+      console.warn('Error carregant info de competició:', error);
+      return null;
+    }
+  };
+
+  const clearCompetitionInfo = () => {
+    try {
+      localStorage.removeItem(COMPETITION_KEY);
+    } catch (error) {
+      console.warn('Error netejant info de competició:', error);
+    }
+  };
+
+  const resetGameState = () => {
+    setIntents([]);
+    setFormesCanoniquesProvades(new Set());
+    setPistesDonades(0);
+    setGameWon(false);
+    setLastGuess(null);
+    setSurrendered(false);
+    setParaulaSolucio(null);
+    setError(null);
+  };
+
   // Obtenir la paraula del dia de l'URL (decodificada des de Base64)
   const getRebuscadaFromUrl = (): string | null => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -113,6 +179,12 @@ function App() {
       console.warn('Error decodificant la paraula Base64:', error);
       return null;
     }
+  };
+
+  // Obtenir l'ID de competició de la URL
+  const getCompIdFromUrl = (): string | null => {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('comp');
   };
 
   // Obtenir la paraula del dia del servidor
@@ -146,6 +218,50 @@ function App() {
       const currentWord = await getCurrentRebuscada();
       setRebuscadaActual(currentWord);
       
+      // Comprovar si estem en mode competició
+      const compId = getCompIdFromUrl();
+      const savedCompInfo = loadCompetitionInfo();
+      
+      // Si la paraula ha canviat i tenim competició guardada, sortir de la competició
+      if (savedCompInfo && savedCompInfo.rebuscada !== currentWord) {
+        clearCompetitionInfo();
+        if (wsConnection) {
+          wsConnection.close();
+          setWsConnection(null);
+        }
+        setCompetitionInfo(null);
+        setCompetitionPlayers([]);
+      }
+      
+      if (compId) {
+        // Mode competició des d'URL
+        if (savedCompInfo && savedCompInfo.comp_id === compId && savedCompInfo.rebuscada === currentWord) {
+          // Ja tenim info guardada d'aquesta competició amb la mateixa paraula
+          setCompetitionInfo(savedCompInfo);
+          await joinCompetitionWebSocket(compId);
+        } else if (savedCompInfo && savedCompInfo.comp_id !== compId) {
+          // Diferent competició - preguntar si vol canviar
+          setPendingCompId(compId);
+          setShowSwitchCompetition(true);
+        } else {
+          // Nova competició o paraula diferent, comprovar si existeix primer
+          const exists = await loadCompetitionState(compId);
+          if (exists) {
+            setShowNamePrompt(true);
+          } else {
+            // Competició caducada
+            setShowExpiredCompetition(true);
+          }
+        }
+      } else if (savedCompInfo && savedCompInfo.rebuscada === currentWord) {
+        // No hi ha compId a URL però tenim competició guardada vàlida - recuperar
+        setCompetitionInfo(savedCompInfo);
+        await joinCompetitionWebSocket(savedCompInfo.comp_id);
+        // Actualitzar URL per reflectir la competició
+        const newUrl = `${window.location.pathname}?comp=${savedCompInfo.comp_id}`;
+        window.history.pushState({}, '', newUrl);
+      }
+      
       const savedState = loadGameState();
       
       // Si hi ha estat guardat i la paraula del dia és la mateixa, carreguem l'estat
@@ -155,8 +271,10 @@ function App() {
         setPistesDonades(savedState.pistesDonades);
         setGameWon(savedState.gameWon);
       } else if (savedState && savedState.rebuscada !== currentWord) {
-        // Si la paraula ha canviat, netegem l'estat guardat
+        // Si la paraula ha canviat, netegem l'estat guardat i l'estat de React
+        console.log(`Paraula canviada - netejant estat anterior (${savedState.rebuscada} -> ${currentWord})`);
         clearGameState();
+        resetGameState();
       }
     };
 
@@ -180,6 +298,272 @@ function App() {
       }
     }
   }, [intents, formesCanoniquesProvades, pistesDonades, gameWon, rebuscadaActual]);
+
+  const loadCompetitionState = async (compId: string) => {
+    try {
+      const response = await fetch(`${SERVER_URL}/competition/${compId}`);
+      if (response.ok) {
+        const data = await response.json();
+        const players = Object.values(data.jugadors) as PlayerCompetition[];
+        setCompetitionPlayers(players);
+        console.log('Jugadors carregats via HTTP:', players);
+        return true;
+      } else if (response.status === 404) {
+        // Competició no trobada (probablement caducada)
+        return false;
+      }
+    } catch (error) {
+      console.error('Error carregant estat de competició:', error);
+    }
+    return false;
+  };
+
+  const joinCompetitionWebSocket = async (compId: string) => {
+    // Primer, carregar l'estat via HTTP
+    const exists = await loadCompetitionState(compId);
+    if (!exists) {
+      // Competició caducada
+      setShowExpiredCompetition(true);
+      clearCompetitionInfo();
+      return;
+    }
+
+    try {
+      // Tancar connexió anterior si n'hi ha
+      if (wsConnection) {
+        wsConnection.close();
+      }
+
+      const wsUrl = SERVER_URL.replace('http', 'ws').replace('https', 'wss') + `/ws/competition/${compId}`;
+      console.log('Intentant connectar WebSocket a:', wsUrl);
+      const ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        console.log('WebSocket connectat a competició:', compId);
+      };
+
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        console.log('WebSocket missatge rebut:', data);
+        if (data.type === 'init' || data.type === 'update') {
+          console.log('Actualitzant jugadors:', data.jugadors);
+          setCompetitionPlayers(data.jugadors);
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error('Error WebSocket:', error);
+        console.log('WebSocket fallit, però jugadors ja carregats via HTTP');
+      };
+
+      ws.onclose = () => {
+        console.log('WebSocket desconnectat');
+        setWsConnection(null);
+      };
+
+      setWsConnection(ws);
+    } catch (error) {
+      console.error('Error connectant WebSocket:', error);
+    }
+  };
+
+  const handleCreateCompetition = async () => {
+    if (!playerName.trim()) {
+      setError('Has d\'introduir un nom');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${SERVER_URL}/competition/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nom_creador: playerName.trim(),
+          rebuscada: rebuscadaActual,
+          intents_existents: intents.map(i => ({
+            paraula: i.paraula,
+            forma_canonica: i.forma_canonica,
+            posicio: i.posicio,
+            total_paraules: i.total_paraules,
+            es_correcta: i.es_correcta
+          }))
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('No s\'ha pogut crear la competició');
+      }
+
+      const data = await response.json();
+      const compInfo: CompetitionInfo = {
+        comp_id: data.comp_id,
+        rebuscada: data.rebuscada,
+        nom_jugador: playerName.trim()
+      };
+
+      setCompetitionInfo(compInfo);
+      saveCompetitionInfo(compInfo);
+
+      // Actualitzar URL
+      const newUrl = `${window.location.pathname}?comp=${data.comp_id}`;
+      window.history.pushState({}, '', newUrl);
+
+      // Connectar WebSocket
+      await joinCompetitionWebSocket(data.comp_id);
+
+      // Tancar modal d'explicació i mostrar modal de compartir
+      setShowCompetitionExplanation(false);
+      setShowCompetitionModal(true);
+    } catch (error) {
+      setError('Error creant la competició');
+      console.error(error);
+    }
+  };
+
+  const handleJoinCompetition = async (compId: string, name: string) => {
+    try {
+      const response = await fetch(`${SERVER_URL}/competition/${compId}/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nom_jugador: name.trim(),
+          intents_existents: intents.map(i => ({
+            paraula: i.paraula,
+            forma_canonica: i.forma_canonica,
+            posicio: i.posicio,
+            total_paraules: i.total_paraules,
+            es_correcta: i.es_correcta
+          }))
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'No s\'ha pogut unir a la competició');
+      }
+
+      const data = await response.json();
+      const compInfo: CompetitionInfo = {
+        comp_id: data.comp_id,
+        rebuscada: data.rebuscada,
+        nom_jugador: name.trim()
+      };
+
+      setCompetitionInfo(compInfo);
+      saveCompetitionInfo(compInfo);
+      
+      // Si la paraula és diferent, netejar els intents
+      if (rebuscadaActual && data.rebuscada !== rebuscadaActual) {
+        console.log(`Paraula canviada de '${rebuscadaActual}' a '${data.rebuscada}' - netejant intents`);
+        resetGameState();
+        clearGameState();
+      }
+      
+      setRebuscadaActual(data.rebuscada);
+
+      // Connectar WebSocket
+      await joinCompetitionWebSocket(compId);
+
+      setShowNamePrompt(false);
+    } catch (error) {
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('Error unint-se a la competició');
+      }
+      console.error(error);
+    }
+  };
+
+  const handleLeaveCompetition = async () => {
+    if (!competitionInfo) return;
+
+    try {
+      const response = await fetch(
+        `${SERVER_URL}/competition/${competitionInfo.comp_id}/leave?nom_jugador=${encodeURIComponent(competitionInfo.nom_jugador)}`,
+        { method: 'POST' }
+      );
+
+      if (!response.ok) {
+        throw new Error('No s\'ha pogut sortir de la competició');
+      }
+
+      // Tancar WebSocket
+      if (wsConnection) {
+        wsConnection.close();
+        setWsConnection(null);
+      }
+
+      // Netejar estat de competició
+      clearCompetitionInfo();
+      setCompetitionInfo(null);
+      setCompetitionPlayers([]);
+
+      // Eliminar comp_id de la URL
+      const newUrl = window.location.pathname;
+      window.history.pushState({}, '', newUrl);
+
+      setShowLeaveConfirm(false);
+    } catch (error) {
+      setError('Error sortint de la competició');
+      console.error(error);
+    }
+  };
+
+  const handleSwitchCompetition = async () => {
+    // Sortir de la competició actual
+    if (competitionInfo) {
+      try {
+        await fetch(
+          `${SERVER_URL}/competition/${competitionInfo.comp_id}/leave?nom_jugador=${encodeURIComponent(competitionInfo.nom_jugador)}`,
+          { method: 'POST' }
+        );
+      } catch (error) {
+        console.error('Error sortint de competició anterior:', error);
+      }
+
+      // Tancar WebSocket
+      if (wsConnection) {
+        wsConnection.close();
+        setWsConnection(null);
+      }
+    }
+
+    // Netejar estat
+    clearCompetitionInfo();
+    setCompetitionInfo(null);
+    setCompetitionPlayers([]);
+
+    // Mostrar prompt per unir-se a la nova competició
+    setShowSwitchCompetition(false);
+    setShowNamePrompt(true);
+  };
+
+  const sortPlayers = (players: PlayerCompetition[]): PlayerCompetition[] => {
+    return [...players].sort((a, b) => {
+      // Rendits van al final
+      if (a.estat_joc === "rendit" && b.estat_joc !== "rendit") return 1;
+      if (a.estat_joc !== "rendit" && b.estat_joc === "rendit") return -1;
+      
+      // Si tots dos són rendits, ordenar per intents (menys intents primer)
+      if (a.estat_joc === "rendit" && b.estat_joc === "rendit") {
+        if (a.intents !== b.intents) return a.intents - b.intents;
+        return a.pistes - b.pistes;
+      }
+      
+      // Ordenar per millor posició (més baix és millor)
+      const posA = a.millor_posicio ?? Infinity;
+      const posB = b.millor_posicio ?? Infinity;
+      
+      if (posA !== posB) return posA - posB;
+      
+      // En cas d'empat, per menys pistes
+      if (a.pistes !== b.pistes) return a.pistes - b.pistes;
+      
+      // En cas d'empat, per menys intents
+      return a.intents - b.intents;
+    });
+  };
 
   const getPosicioColor = (posicio: number): string => {
     if (posicio < 100) return '#4caf50'; // Verd
@@ -214,6 +598,10 @@ function App() {
       const requestBody: any = { paraula: trimmed };
       if (rebuscadaActual && rebuscadaActual !== 'default') {
         requestBody.rebuscada = rebuscadaActual;
+      }
+      if (competitionInfo) {
+        requestBody.comp_id = competitionInfo.comp_id;
+        requestBody.nom_jugador = competitionInfo.nom_jugador;
       }
 
       const response = await fetch(`${SERVER_URL}/guess`, {
@@ -256,10 +644,10 @@ function App() {
 
       const newGuess: Intent = {
         paraula: data.paraula,
-        formaCanonica: data.forma_canonica,
+        forma_canonica: data.forma_canonica,
         posicio: data.posicio,
-        totalParaules: data.total_paraules,
-        esCorrecta: data.es_correcta
+        total_paraules: data.total_paraules,
+        es_correcta: data.es_correcta
       };
 
       setLastGuess(newGuess);
@@ -355,6 +743,10 @@ function App() {
       if (rebuscadaActual && rebuscadaActual !== 'default') {
         requestBody.rebuscada = rebuscadaActual;
       }
+      if (competitionInfo) {
+        requestBody.comp_id = competitionInfo.comp_id;
+        requestBody.nom_jugador = competitionInfo.nom_jugador;
+      }
 
       const response = await fetch(`${SERVER_URL}/pista`, {
         method: 'POST',
@@ -379,11 +771,11 @@ function App() {
       
       const newGuess: Intent = {
         paraula: data.paraula,
-        formaCanonica: data.forma_canonica,
+        forma_canonica: data.forma_canonica,
         posicio: data.posicio,
-        totalParaules: data.total_paraules,
-        esCorrecta: data.posicio === 0,
-        esPista: true
+        total_paraules: data.total_paraules,
+        es_correcta: data.posicio === 0,
+        es_pista: true
       };
       
       setLastGuess(newGuess);
@@ -391,9 +783,9 @@ function App() {
       setFormesCanoniquesProvades(prev => new Set(prev).add(formaCanonicaResultant));
       setPistesDonades(prev => prev + 1);
 
-      if (newGuess.esCorrecta) {
+      if (newGuess.es_correcta) {
   setGameWon(true);
-  setParaulaSolucio(newGuess.formaCanonica || newGuess.paraula);
+  setParaulaSolucio(newGuess.forma_canonica || newGuess.paraula);
       }
 
     } catch (err) {
@@ -421,6 +813,10 @@ function App() {
       const requestBody: any = {};
       if (rebuscadaActual && rebuscadaActual !== 'default') {
         requestBody.rebuscada = rebuscadaActual;
+      }
+      if (competitionInfo) {
+        requestBody.comp_id = competitionInfo.comp_id;
+        requestBody.nom_jugador = competitionInfo.nom_jugador;
       }
 
       const response = await fetch(`${SERVER_URL}/rendirse`, {
@@ -463,6 +859,22 @@ function App() {
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
+
+  // Tancar connexió WebSocket quan es desmunta el component
+  React.useEffect(() => {
+    return () => {
+      if (wsConnection) {
+        wsConnection.close();
+      }
+    };
+  }, [wsConnection]);
+
+  // Reiniciar estat de linkCopied quan es tanca el modal
+  React.useEffect(() => {
+    if (!showCompetitionModal) {
+      setLinkCopied(false);
+    }
+  }, [showCompetitionModal]);
 
   return (
     <div className="App">
@@ -511,6 +923,20 @@ function App() {
                     disabled={gameWon}
                   >
                     Rendir-se
+                  </button>
+                  <button 
+                    type="button"
+                    className="dropdown-item"
+                    onClick={() => {
+                      setIsDropdownOpen(false);
+                      if (competitionInfo) {
+                        setShowCompetitionModal(true);
+                      } else {
+                        setShowCompetitionExplanation(true);
+                      }
+                    }}
+                  >
+                    Crea competició
                   </button>
                 </div>
               </div>
@@ -623,10 +1049,10 @@ function App() {
                   )}
               </div>
             ) : lastGuess && (
-              <div className="intent-item highlighted" style={getBackgroundStyle(lastGuess.posicio, lastGuess.totalParaules)}>
+              <div className="intent-item highlighted" style={getBackgroundStyle(lastGuess.posicio, lastGuess.total_paraules)}>
                 <span className="paraula">
                   {lastGuess.paraula}
-                  {lastGuess.formaCanonica && ` (${lastGuess.formaCanonica})`}
+                  {lastGuess.forma_canonica && ` (${lastGuess.forma_canonica})`}
                 </span>
                 <div className="proximitat-info">
                   <span className="proximitat-valor" style={{ color: getPosicioColor(lastGuess.posicio) }}>
@@ -641,12 +1067,12 @@ function App() {
           {intents.map((intent, idx) => (
             <li 
               key={idx} 
-              className={`intent-item ${intent.esCorrecta ? 'correct' : ''} ${intent === lastGuess ? 'highlighted' : ''}`}
-              style={getBackgroundStyle(intent.posicio, intent.totalParaules)}
+              className={`intent-item ${intent.es_correcta ? 'correct' : ''} ${intent === lastGuess ? 'highlighted' : ''}`}
+              style={getBackgroundStyle(intent.posicio, intent.total_paraules)}
             >
               <span className="paraula">
                 {intent.paraula}
-                {intent.formaCanonica && ` (${intent.formaCanonica})`}
+                {intent.forma_canonica && ` (${intent.forma_canonica})`}
               </span>
               <div className="proximitat-info">
                 <span className="proximitat-valor" style={{ color: getPosicioColor(intent.posicio) }}>
@@ -692,6 +1118,261 @@ function App() {
             </div>
           </div>
         )}
+
+      {/* Sidebar de competició */}
+      {competitionInfo && (
+        <div className="competition-sidebar">
+          <div className="sidebar-header">
+            <h3>Jugadors</h3>
+            <button 
+              className="close-competition-btn"
+              onClick={() => setShowLeaveConfirm(true)}
+              aria-label="Sortir de la competició"
+            >
+              ×
+            </button>
+          </div>
+          {competitionPlayers.length === 0 ? (
+            <p style={{ textAlign: 'center', color: '#7f8c8d', padding: '1rem' }}>
+              Carregant jugadors...
+            </p>
+          ) : (
+            <ul className="competition-players compact">
+              {sortPlayers(competitionPlayers).map((player, idx) => (
+                <li key={idx} className={player.nom === competitionInfo.nom_jugador ? 'current-player' : ''}>
+                  <span className="player-name">{player.nom}</span>
+                  {player.millor_posicio !== null && (
+                    <span 
+                      className="player-position" 
+                      style={{ color: getPosicioColor(player.millor_posicio) }}
+                    >
+                      #{player.millor_posicio}
+                    </span>
+                  )}
+                  <span className="player-info">
+                    ({player.intents}i{player.pistes > 0 && `, ${player.pistes}p`})
+                  </span>
+                  {player.estat_joc === "guanyat" && <span className="player-won"> ✓</span>}
+                  {player.estat_joc === "rendit" && <span className="player-surrendered"> ✗</span>}
+                </li>
+              ))}
+            </ul>
+          )}
+          <button 
+            className="add-players-btn"
+            onClick={() => setShowCompetitionModal(true)}
+          >
+            + Afegir jugadors
+          </button>
+        </div>
+      )}
+
+      {/* Modal d'explicació del mode competitiu */}
+      {showCompetitionExplanation && (
+        <div className="competition-modal" role="dialog" aria-modal="true">
+          <div className="competition-content">
+            <h3>Mode Competitiu</h3>
+            <button className="close" onClick={() => setShowCompetitionExplanation(false)}>×</button>
+            <div className="explanation-text">
+              <p>
+                El <strong>mode competitiu</strong> et permet competir amb els teus amics per veure qui 
+                troba la paraula rebuscada amb menys intents!
+              </p>
+              <ul>
+                <li>Es juga amb la paraula del dia actual</li>
+                <li>Comparteix l'enllaç amb els teus amics</li>
+                <li>Veuràs els seus progressos en temps real</li>
+                <li>Si ja estaves jugant, els teus intents es mantenen</li>
+              </ul>
+              <p>Escriu el teu nom per començar:</p>
+              <input
+                type="text"
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value)}
+                placeholder="El teu nom..."
+                maxLength={20}
+                autoFocus
+              />
+              <div className="modal-actions">
+                <button onClick={handleCreateCompetition} disabled={!playerName.trim()}>
+                  Crear Competició
+                </button>
+                <button onClick={() => setShowCompetitionExplanation(false)} className="cancel">
+                  Cancel·lar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal per mostrar l'enllaç de competició */}
+      {showCompetitionModal && competitionInfo && (
+        <div className="competition-modal" role="dialog" aria-modal="true">
+          <div className="competition-content share-link-modal">
+            <h3> Comparteix per competir</h3>
+            <button className="close" onClick={() => setShowCompetitionModal(false)}>×</button>
+            <p className="share-instructions">
+              Envia aquest enllaç als teus amics perquè puguin unir-se a la competició:
+            </p>
+            <div className="competition-link">
+              <input
+                type="text"
+                value={`${window.location.origin}${window.location.pathname}?comp=${competitionInfo.comp_id}`}
+                readOnly
+                onClick={(e) => e.currentTarget.select()}
+              />
+              <button
+                className={linkCopied ? 'copied' : ''}
+                onClick={() => {
+                  const link = `${window.location.origin}${window.location.pathname}?comp=${competitionInfo.comp_id}`;
+                  navigator.clipboard.writeText(link);
+                  setLinkCopied(true);
+                  setTimeout(() => {
+                    setLinkCopied(false);
+                  }, 2000);
+                }}
+              >
+                {linkCopied ? (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                      <path d="M10.854 7.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 9.793l2.646-2.647a.5.5 0 0 1 .708 0"/>
+                      <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1z"/>
+                      <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0z"/>
+                    </svg>
+                    <span>Copiat!</span>
+                  </>
+                ) : (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                      <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1z"/>
+                      <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0z"/>
+                    </svg>
+                    <span>Copiar</span>
+                  </>
+                )}
+              </button>
+            </div>
+            <button onClick={() => setShowCompetitionModal(false)} className="ok-button">
+              D'acord
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal competició caducada */}
+      {showExpiredCompetition && (
+        <div className="competition-modal" role="dialog" aria-modal="true">
+          <div className="competition-content">
+            <h3>Competició caducada</h3>
+            <p>
+              La competició a la que vols accedir ha caducat. Ens sap greu...
+            </p>
+            <div className="modal-actions">
+              <button
+                onClick={() => {
+                  setShowExpiredCompetition(false);
+                  // Netejar URL de competició
+                  window.history.pushState({}, '', window.location.pathname);
+                }}
+                className="primary"
+              >
+                Juga en mode normal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Prompt per unir-se a competició */}
+      {showNamePrompt && (
+        <div className="competition-modal" role="dialog" aria-modal="true">
+          <div className="competition-content">
+            <h3>Unir-se a Competició</h3>
+            <p>Introdueix el teu nom per unir-te a aquesta competició:</p>
+            {error && <div className="error">{error}</div>}
+            <input
+              type="text"
+              value={playerName}
+              onChange={(e) => {
+                setPlayerName(e.target.value);
+                setError(null); // Netejar error quan l'usuari escriu
+              }}
+              placeholder="El teu nom..."
+              maxLength={20}
+              autoFocus
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && playerName.trim()) {
+                  const compId = getCompIdFromUrl();
+                  if (compId) {
+                    handleJoinCompetition(compId, playerName);
+                  }
+                }
+              }}
+            />
+            <div className="modal-actions">
+              <button
+                onClick={() => {
+                  const compId = getCompIdFromUrl();
+                  if (compId) {
+                    handleJoinCompetition(compId, playerName);
+                  }
+                }}
+                disabled={!playerName.trim()}
+              >
+                Unir-se
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal confirmació sortida de competició */}
+      {showLeaveConfirm && (
+        <div className="competition-modal" role="dialog" aria-modal="true">
+          <div className="competition-content">
+            <h3>Sortir de la competició?</h3>
+            <p>
+              Si surts de la competició, els altres jugadors ja no veuran el teu progrés.
+              Les paraules que has endevinat es mantindran.
+            </p>
+            <div className="modal-actions">
+              <button onClick={handleLeaveCompetition} className="danger">
+                Sortir
+              </button>
+              <button onClick={() => setShowLeaveConfirm(false)} className="cancel">
+                Cancel·lar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal canvi de competició */}
+      {showSwitchCompetition && (
+        <div className="competition-modal" role="dialog" aria-modal="true">
+          <div className="competition-content">
+            <h3>Canviar de competició?</h3>
+            <p>
+              Ja estàs participant en una competició. Vols sortir-ne i unir-te a aquesta nova competició?
+            </p>
+            <div className="modal-actions">
+              <button onClick={handleSwitchCompetition}>
+                Canviar
+              </button>
+              <button 
+                onClick={() => {
+                  setShowSwitchCompetition(false);
+                  setPendingCompId(null);
+                }} 
+                className="cancel"
+              >
+                Cancel·lar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

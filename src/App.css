@@ -113,6 +113,7 @@ input {
   background: #fff;
   color: #2c3e50;
   transition: border-color 0.2s ease;
+  box-sizing: border-box;
 }
 
 input:focus {
@@ -728,5 +729,433 @@ form button[type="submit"] {
   .suggestion-item {
     font-size: 0.9rem;
     padding: 0.45rem 0.85rem;
+  }
+}
+
+/* Estils per mode competitiu */
+.competition-sidebar {
+  position: fixed;
+  left: 1rem;
+  top: 6rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+  width: 250px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid #3498db;
+  padding-bottom: 0.5rem;
+}
+
+.competition-sidebar h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #2c3e50;
+}
+
+.close-competition-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #898989;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.close-competition-btn:hover {
+  background: #f0f0f0;
+  transform: scale(1.1);
+}
+
+.competition-players {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.competition-players li {
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.35rem;
+  background: #f8f9fa;
+  border-radius: 4px;
+  border-left: 3px solid #e0e0e0;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.competition-players li.current-player {
+  background: #e3f2fd;
+  border-left-color: #3498db;
+  font-weight: 600;
+}
+
+.competition-players .player-name {
+  font-size: 0.9rem;
+  color: #2c3e50;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.competition-players .player-position {
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 0.1rem 0.35rem;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.competition-players .player-info {
+  font-size: 0.8rem;
+  color: #7f8c8d;
+  flex-shrink: 0;
+}
+
+.competition-players .player-won {
+  color: #27ae60;
+  font-weight: bold;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.competition-players .player-surrendered {
+  color: #e74c3c;
+  font-weight: bold;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.add-players-btn {
+  width: 100%;
+  padding: 0.75rem;
+  margin-top: 0.75rem;
+  background: #3498db;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.add-players-btn:hover {
+  background: #2980b9;
+}
+
+.competition-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.competition-content {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  max-width: 500px;
+  width: 100%;
+  position: relative;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.competition-content h3 {
+  margin: 0 0 1.5rem 0;
+  color: #2c3e50;
+  font-size: 1.5rem;
+}
+
+.share-link-modal h3 {
+  font-size: 1.6rem;
+  text-align: center;
+}
+
+.share-instructions {
+  text-align: center;
+  font-size: 1.05rem;
+  color: #555;
+  margin-bottom: 1.5rem;
+}
+
+.share-info {
+  background: #e8f4f8;
+  border-left: 4px solid #3498db;
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  margin: 1rem 0;
+}
+
+.share-info p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #2c3e50;
+}
+
+.competition-content .close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: #95a5a6;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.competition-content .close:hover {
+  color: #7f8c8d;
+}
+
+.explanation-text {
+  text-align: left;
+  line-height: 1.6;
+}
+
+.explanation-text ul {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+}
+
+.explanation-text li {
+  margin: 0.5rem 0;
+}
+
+.explanation-text input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 1rem;
+  margin-top: 0.5rem;
+  transition: border-color 0.2s;
+}
+
+.explanation-text input:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.modal-actions button {
+  flex: 1;
+  padding: 0.75rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.modal-actions button:first-child {
+  background: #3498db;
+  color: white;
+}
+
+.modal-actions button:first-child:hover:not(:disabled) {
+  background: #2980b9;
+}
+
+.modal-actions button:first-child:disabled {
+  background: #bdc3c7;
+  cursor: not-allowed;
+}
+
+.modal-actions button.cancel {
+  background: #ecf0f1;
+  color: #7f8c8d;
+}
+
+.modal-actions button.cancel:hover {
+  background: #d5dbdb;
+}
+
+.modal-actions button.danger {
+  background: #e74c3c;
+  color: white;
+}
+
+.modal-actions button.danger:hover {
+  background: #c0392b;
+}
+
+.competition-link {
+  display: flex;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.competition-link input {
+  flex: 1;
+  padding: 0.75rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background: #f8f9fa;
+}
+
+.competition-link button {
+  padding: 0.75rem 1.5rem;
+  background: #27ae60;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.competition-link button svg {
+  transition: transform 0.3s ease;
+}
+
+.competition-link button:hover {
+  background: #229954;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3);
+}
+
+.competition-link button:hover svg {
+  transform: scale(1.1);
+}
+
+.competition-link button.copied {
+  background: #2ecc71;
+  animation: pulse 0.5s ease;
+}
+
+.competition-link button.copied svg {
+  animation: checkmark 0.5s ease;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes checkmark {
+  0% {
+    transform: scale(0) rotate(-45deg);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+.ok-button {
+  width: 100%;
+  padding: 0.75rem;
+  background: #3498db;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-top: 1rem;
+}
+
+.ok-button:hover {
+  background: #2980b9;
+}
+
+/* Responsive per sidebar de competició */
+@media (max-width: 1280px) {
+  .competition-sidebar {
+    position: static;
+    width: 100%;
+    max-width: 500px;
+    margin: 50px auto 1rem auto;
+    max-height: none;
+  }
+
+  .App {
+    padding-top: 1rem;
+  }
+}
+
+@media (max-width: 520px) {
+  .competition-content {
+    padding: 1.5rem;
+  }
+
+  .competition-link {
+    flex-direction: column;
+  }
+
+  .competition-link button {
+    width: 100%;
+  }
+
+  .competition-sidebar {
+    padding: 0.75rem;
+  }
+
+  .competition-players li {
+    padding: 0.5rem;
+  }
+
+  .competition-players .player-name {
+    font-size: 0.9rem;
+  }
+
+  .competition-players .player-stats {
+    font-size: 0.8rem;
   }
 }
