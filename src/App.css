@@ -1159,3 +1159,83 @@ form button[type="submit"] {
     font-size: 0.8rem;
   }
 }
+
+/* Jocs anteriors */
+.previous-games-list {
+  max-height: 400px;
+  margin: 1rem 0;
+}
+
+.previous-game-item {
+  display: grid;
+  grid-template-columns: 80px 120px 1fr;
+  gap: 1rem;
+  padding: 1rem;
+  margin: 0.5rem 0;
+  background: #f8f9fa;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  align-items: center;
+}
+
+.previous-game-item:hover {
+  background: #e9ecef;
+  transform: translateX(5px);
+}
+
+.game-id {
+  font-size: 1.2rem;
+  color: #2c3e50;
+}
+
+.game-date {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.game-status {
+  text-align: right;
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  display: inline-block;
+  justify-self: end;
+}
+
+.status-trobada {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-abandonat {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.status-en {
+  background: #fff3cd;
+  color: #856404;
+}
+
+@media (max-width: 600px) {
+  .previous-game-item {
+    grid-template-columns: 60px 100px 1fr;
+    gap: 0.5rem;
+    padding: 0.75rem;
+  }
+
+  .game-id {
+    font-size: 1rem;
+  }
+
+  .game-date {
+    font-size: 0.8rem;
+  }
+
+  .game-status {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.5rem;
+  }
+}

@@ -16,6 +16,15 @@ interface GameState {
   pistesDonades: number;
   gameWon: boolean;
   rebuscada: string;
+  gameId: number;
+  surrendered: boolean;
+}
+
+interface GameInfo {
+  id: number;
+  name: string;
+  startDate: string;
+  today: string;
 }
 
 interface ErrorResponse {
@@ -61,8 +70,55 @@ interface PistaResponse {
 const SERVER_URL = process.env.REACT_APP_SERVER_URL || 'http://localhost:8000';
 
 // Claus per localStorage
-const GAME_STATE_KEY = 'rebuscada-game-state';
+const GAMES_STATE_KEY = 'rebuscada-games-state'; // Ara guarda tots els jocs
 const COMPETITION_KEY = 'rebuscada-competition';
+const CURRENT_GAME_ID_KEY = 'rebuscada-current-game-id';
+
+// Converteix un número a números romans
+function toRoman(num: number): string {
+  const romanNumerals: [number, string][] = [
+    [1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'],
+    [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'],
+    [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']
+  ];
+  
+  let result = '';
+  for (const [value, numeral] of romanNumerals) {
+    while (num >= value) {
+      result += numeral;
+      num -= value;
+    }
+  }
+  return result;
+}
+
+// Converteix números romans a decimal
+function fromRoman(roman: string): number | null {
+  const romanValues: Record<string, number> = {
+    'I': 1, 'V': 5, 'X': 10, 'L': 50,
+    'C': 100, 'D': 500, 'M': 1000
+  };
+  
+  let result = 0;
+  const upper = roman.toUpperCase();
+  
+  for (let i = 0; i < upper.length; i++) {
+    const current = romanValues[upper[i]];
+    const next = romanValues[upper[i + 1]];
+    
+    if (!current) {
+      return null; // Caràcter invàlid
+    }
+    
+    if (next && current < next) {
+      result -= current;
+    } else {
+      result += current;
+    }
+  }
+  
+  return result > 0 ? result : null;
+}
 
 function App() {
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -85,7 +141,10 @@ function App() {
   const [rankingError, setRankingError] = useState<string | null>(null);
   const [rankingTotal, setRankingTotal] = useState<number | null>(null);
   const [surrendered, setSurrendered] = useState(false);
-  const [paraulaSolucio, setParaulaSolucio] = useState<string | null>(null);
+
+  // Estats per jocs anteriors
+  const [showPreviousGames, setShowPreviousGames] = useState(false);
+  const [previousGames, setPreviousGames] = useState<GameInfo[]>([]);
 
   // Estats per mode competitiu
   const [showCompetitionModal, setShowCompetitionModal] = useState(false);
@@ -100,29 +159,54 @@ function App() {
   const [showSwitchCompetition, setShowSwitchCompetition] = useState(false);
   const [pendingCompId, setPendingCompId] = useState<string | null>(null);
   const [showExpiredCompetition, setShowExpiredCompetition] = useState(false);
+  const [showLeaveCompetitionWarning, setShowLeaveCompetitionWarning] = useState(false);
+  const [pendingGameId, setPendingGameId] = useState<number | null>(null);
 
-  // Funcions per gestionar localStorage
+  // Funcions per gestionar localStorage (múltiples jocs)
   const saveGameState = (gameState: GameState) => {
     try {
-      localStorage.setItem(GAME_STATE_KEY, JSON.stringify(gameState));
+      const allGames = loadAllGamesState();
+      allGames[gameState.gameId] = gameState;
+      localStorage.setItem(GAMES_STATE_KEY, JSON.stringify(allGames));
+      localStorage.setItem(CURRENT_GAME_ID_KEY, String(gameState.gameId));
     } catch (error) {
       console.warn('Error guardant l\'estat del joc:', error);
     }
   };
 
-  const loadGameState = (): GameState | null => {
+  const loadGameState = (gameId: number): GameState | null => {
     try {
-      const saved = localStorage.getItem(GAME_STATE_KEY);
-      return saved ? JSON.parse(saved) : null;
+      const allGames = loadAllGamesState();
+      return allGames[gameId] || null;
     } catch (error) {
       console.warn('Error carregant l\'estat del joc:', error);
       return null;
     }
   };
 
+  const loadAllGamesState = (): Record<number, GameState> => {
+    try {
+      const saved = localStorage.getItem(GAMES_STATE_KEY);
+      return saved ? JSON.parse(saved) : {};
+    } catch (error) {
+      console.warn('Error carregant tots els jocs:', error);
+      return {};
+    }
+  };
+
+  const getCurrentGameId = (): number | null => {
+    try {
+      const saved = localStorage.getItem(CURRENT_GAME_ID_KEY);
+      return saved ? parseInt(saved, 10) : null;
+    } catch (error) {
+      return null;
+    }
+  };
+
   const clearGameState = () => {
     try {
-      localStorage.removeItem(GAME_STATE_KEY);
+      localStorage.removeItem(GAMES_STATE_KEY);
+      localStorage.removeItem(CURRENT_GAME_ID_KEY);
     } catch (error) {
       console.warn('Error netejant l\'estat del joc:', error);
     }
@@ -161,24 +245,16 @@ function App() {
     setGameWon(false);
     setLastGuess(null);
     setSurrendered(false);
-    setParaulaSolucio(null);
     setError(null);
   };
 
-  // Obtenir la paraula del dia de l'URL (decodificada des de Base64)
-  const getRebuscadaFromUrl = (): string | null => {
+  // Obtenir l'ID del joc de la URL (en números romans)
+  const getGameIdFromUrl = (): number | null => {
     const urlParams = new URLSearchParams(window.location.search);
-    const encodedWord = urlParams.get('word');
-    if (!encodedWord) return null;
+    const romanId = urlParams.get('joc');
+    if (!romanId) return null;
     
-    try {
-      // Decodificar des de Base64
-      const decodedWord = atob(encodedWord);
-      return decodedWord;
-    } catch (error) {
-      console.warn('Error decodificant la paraula Base64:', error);
-      return null;
-    }
+    return fromRoman(romanId);
   };
 
   // Obtenir l'ID de competició de la URL
@@ -187,43 +263,192 @@ function App() {
     return urlParams.get('comp');
   };
 
-  // Obtenir la paraula del dia del servidor
-  const getRebuscadaFromServer = async (): Promise<string | null> => {
+  // Obtenir paraula personalitzada de la URL
+  const getWordFromUrl = (): string | null => {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('word');
+  };
+
+  // Comprovar si el mode competitiu està disponible
+  const isCompetitionAvailable = (): boolean => {
+    // No permetre competicions si hi ha una paraula personalitzada
+    return !getWordFromUrl();
+  };
+
+  // Obtenir el joc del dia del servidor
+  const getGameOfDay = async (): Promise<GameInfo | null> => {
     try {
       const response = await fetch(`${SERVER_URL}/paraula-dia`);
       if (response.ok) {
-        const data = await response.json();
-        return data.paraula || null;
+        const data: GameInfo = await response.json();
+        return data;
       }
     } catch (error) {
-      console.warn('Error obtenint la paraula del dia del servidor:', error);
+      console.warn('Error obtenint el joc del dia:', error);
     }
     return null;
   };
 
-  // Obtenir la paraula del dia actual (prioritzant URL sobre servidor)
-  const getCurrentRebuscada = async (): Promise<string> => {
-    const urlWord = getRebuscadaFromUrl();
-    if (urlWord) return urlWord;
-    
-    const serverWord = await getRebuscadaFromServer();
-    return serverWord || 'default';
+  // Obtenir informació d'un joc específic per ID
+  const getGameById = async (gameId: number): Promise<GameInfo | null> => {
+    try {
+      const response = await fetch(`${SERVER_URL}/public-games`);
+      if (response.ok) {
+        const data = await response.json();
+        const game = data.games.find((g: any) => g.id === gameId);
+        return game ? { 
+          id: game.id, 
+          name: game.name,
+          startDate: data.startDate,
+          today: data.today 
+        } : null;
+      }
+    } catch (error) {
+      console.warn('Error obtenint joc per ID:', error);
+    }
+    return null;
   };
 
-  const rebuscada = getRebuscadaFromUrl();
+  // Obtenir el joc actual (des de URL o joc del dia)
+  const getCurrentGame = async (): Promise<GameInfo | null> => {
+    // Prioritat 1: Paraula personalitzada (word)
+    const customWord = getWordFromUrl();
+    if (customWord) {
+      try {
+        // Descodificar base64
+        const decodedWord = atob(customWord);
+        
+        // Validar la paraula fent una petició al servidor
+        const response = await fetch(`${SERVER_URL}/guess`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            paraula: decodedWord,
+            rebuscada: decodedWord 
+          })
+        });
+        
+        if (response.ok) {
+          // La paraula és vàlida, retornar com a GameInfo
+          return {
+            id: 0, // ID especial per paraules personalitzades
+            name: decodedWord,
+            startDate: new Date().toLocaleDateString('ca-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }).split('/').join('-'),
+            today: new Date().toLocaleDateString('ca-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }).split('/').join('-')
+          };
+        } else {
+          // Paraula no vàlida
+          const errorData = await response.json();
+          throw new Error(errorData.detail || 'La paraula no és vàlida');
+        }
+      } catch (error) {
+        console.error('Error amb paraula personalitzada:', error);
+        setError(`Error amb la paraula personalitzada: ${error instanceof Error ? error.message : 'Paraula no vàlida'}`);
+        return null;
+      }
+    }
+    
+    // Prioritat 2: ID de joc específic
+    const urlGameId = getGameIdFromUrl();
+    if (urlGameId) {
+      return await getGameById(urlGameId);
+    }
+    
+    // Prioritat 3: Joc del dia
+    return await getGameOfDay();
+  };
+
+  // Carregar jocs anteriors (anteriors a la data d'avui)
+  const loadPreviousGames = async () => {
+    try {
+      const response = await fetch(`${SERVER_URL}/public-games`);
+      if (response.ok) {
+        const data = await response.json();
+        const allGames: GameInfo[] = data.games.map((g: any) => ({
+          id: g.id,
+          name: g.name,
+          startDate: data.startDate
+        }));
+        
+        // Calcular l'ID del joc d'avui
+        const startDate = new Date(data.startDate.split('-').reverse().join('-'));
+        const today = new Date(data.today.split('-').reverse().join('-'));
+        const daysDiff = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+        const todayGameId = daysDiff + 1;
+        
+        // Filtrar jocs fins avui (inclòs) i ordenar de més alt a més baix
+        const previous = allGames
+          .filter(g => g.id <= todayGameId)
+          .sort((a, b) => b.id - a.id);
+        
+        setPreviousGames(previous);
+      }
+    } catch (error) {
+      console.error('Error carregant jocs anteriors:', error);
+    }
+  };
+
+  const [currentGameId, setCurrentGameId] = useState<number | null>(null);
 
   // Inicialitzar l'estat del joc
   useEffect(() => {
     const initializeGame = async () => {
-      const currentWord = await getCurrentRebuscada();
-      setRebuscadaActual(currentWord);
+      // Obtenir el joc actual
+      const gameInfo = await getCurrentGame();
+      
+      if (!gameInfo) {
+        console.error('No s\'ha pogut obtenir el joc actual');
+        return;
+      }
+      
+      setCurrentGameId(gameInfo.id);
+      setRebuscadaActual(gameInfo.name);
+      
+      // Debug info (abans de tot)
+      console.log('=== DEBUG INFO ===');
+      console.log('Paraula rebuscada:', gameInfo.name);
+      console.log('Game ID:', gameInfo.id);
+      console.log('localStorage GAMES_STATE_KEY:', loadAllGamesState());
+      console.log('localStorage COMPETITION_KEY:', loadCompetitionInfo());
+      console.log('==================');
+      
+      // Si hi ha paraula personalitzada, no permetre competicions
+      const hasCustomWord = getWordFromUrl();
+      if (hasCustomWord) {
+        console.log('Mode paraula personalitzada detectat - desactivant competicions');
+        // Netejar qualsevol competició guardada
+        const savedCompInfo = loadCompetitionInfo();
+        if (savedCompInfo) {
+          clearCompetitionInfo();
+          if (wsConnection) {
+            wsConnection.close();
+            setWsConnection(null);
+          }
+          setCompetitionInfo(null);
+          setCompetitionPlayers([]);
+        }
+        
+        // Carregar estat del joc i sortir
+        const savedState = loadGameState(gameInfo.id);
+        console.log('Estat guardat per aquest joc:', savedState);
+        if (savedState) {
+          setIntents(savedState.intents);
+          setFormesCanoniquesProvades(new Set(savedState.formesCanoniquesProvades));
+          setPistesDonades(savedState.pistesDonades);
+          setGameWon(savedState.gameWon);
+          setSurrendered(savedState.surrendered);
+        } else {
+          resetGameState();
+        }
+        return;
+      }
       
       // Comprovar si estem en mode competició
       const compId = getCompIdFromUrl();
       const savedCompInfo = loadCompetitionInfo();
       
-      // Si la paraula ha canviat i tenim competició guardada, sortir de la competició
-      if (savedCompInfo && savedCompInfo.rebuscada !== currentWord) {
+      // Si el joc ha canviat i tenim competició guardada, sortir de la competició
+      if (savedCompInfo && savedCompInfo.rebuscada !== gameInfo.name) {
         clearCompetitionInfo();
         if (wsConnection) {
           wsConnection.close();
@@ -235,16 +460,28 @@ function App() {
       
       if (compId) {
         // Mode competició des d'URL
-        if (savedCompInfo && savedCompInfo.comp_id === compId && savedCompInfo.rebuscada === currentWord) {
-          // Ja tenim info guardada d'aquesta competició amb la mateixa paraula
-          setCompetitionInfo(savedCompInfo);
-          await joinCompetitionWebSocket(compId);
+        if (savedCompInfo && savedCompInfo.comp_id === compId) {
+          // Ja tenim info guardada d'aquesta competició
+          if (savedCompInfo.rebuscada === gameInfo.name) {
+            // Mateixa paraula - recuperar competició
+            setCompetitionInfo(savedCompInfo);
+            await joinCompetitionWebSocket(compId);
+          } else {
+            // Paraula diferent - netejar i comprovar si existeix
+            clearCompetitionInfo();
+            const exists = await loadCompetitionState(compId);
+            if (exists) {
+              setShowNamePrompt(true);
+            } else {
+              setShowExpiredCompetition(true);
+            }
+          }
         } else if (savedCompInfo && savedCompInfo.comp_id !== compId) {
           // Diferent competició - preguntar si vol canviar
           setPendingCompId(compId);
           setShowSwitchCompetition(true);
         } else {
-          // Nova competició o paraula diferent, comprovar si existeix primer
+          // No hi ha savedCompInfo - comprovar si existeix la competició
           const exists = await loadCompetitionState(compId);
           if (exists) {
             setShowNamePrompt(true);
@@ -253,7 +490,7 @@ function App() {
             setShowExpiredCompetition(true);
           }
         }
-      } else if (savedCompInfo && savedCompInfo.rebuscada === currentWord) {
+      } else if (savedCompInfo && savedCompInfo.rebuscada === gameInfo.name) {
         // No hi ha compId a URL però tenim competició guardada vàlida - recuperar
         setCompetitionInfo(savedCompInfo);
         await joinCompetitionWebSocket(savedCompInfo.comp_id);
@@ -262,18 +499,18 @@ function App() {
         window.history.pushState({}, '', newUrl);
       }
       
-      const savedState = loadGameState();
+      const savedState = loadGameState(gameInfo.id);
+      console.log('Estat guardat per aquest joc (mode normal):', savedState);
       
-      // Si hi ha estat guardat i la paraula del dia és la mateixa, carreguem l'estat
-      if (savedState && savedState.rebuscada === currentWord) {
+      // Si hi ha estat guardat per aquest joc, carreguem l'estat
+      if (savedState) {
         setIntents(savedState.intents);
         setFormesCanoniquesProvades(new Set(savedState.formesCanoniquesProvades));
         setPistesDonades(savedState.pistesDonades);
         setGameWon(savedState.gameWon);
-      } else if (savedState && savedState.rebuscada !== currentWord) {
-        // Si la paraula ha canviat, netegem l'estat guardat i l'estat de React
-        console.log(`Paraula canviada - netejant estat anterior (${savedState.rebuscada} -> ${currentWord})`);
-        clearGameState();
+        setSurrendered(savedState.surrendered);
+      } else {
+        // Nou joc - estat net
         resetGameState();
       }
     };
@@ -283,21 +520,81 @@ function App() {
 
   // Guardar l'estat cada cop que canvien les dades importants
   useEffect(() => {
-    if (rebuscadaActual) {
+    if (rebuscadaActual && currentGameId !== null) {
       const gameState: GameState = {
         intents,
         formesCanoniquesProvades: Array.from(formesCanoniquesProvades),
         pistesDonades,
         gameWon,
-        rebuscada: rebuscadaActual
+        rebuscada: rebuscadaActual,
+        gameId: currentGameId,
+        surrendered
       };
       
-      // Només guardem si hi ha algun intent o el joc s'ha guanyat
-      if (intents.length > 0 || gameWon) {
+      // Només guardem si hi ha algun intent, el joc s'ha guanyat o s'ha rendit
+      if (intents.length > 0 || gameWon || surrendered) {
         saveGameState(gameState);
       }
     }
-  }, [intents, formesCanoniquesProvades, pistesDonades, gameWon, rebuscadaActual]);
+  }, [intents, formesCanoniquesProvades, pistesDonades, gameWon, surrendered, rebuscadaActual, currentGameId]);
+
+  // Sincronitzar estat entre pestanyes
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      // Només sincronitzar si és el mateix joc i la mateixa paraula
+      if (e.key === GAMES_STATE_KEY && currentGameId !== null && rebuscadaActual) {
+        const savedState = loadGameState(currentGameId);
+        
+        // Verificar que és el mateix joc abans d'actualitzar
+        if (savedState && savedState.rebuscada === rebuscadaActual && savedState.gameId === currentGameId) {
+          console.log('Sincronitzant estat des d\'altra pestanya');
+          setIntents(savedState.intents);
+          setFormesCanoniquesProvades(new Set(savedState.formesCanoniquesProvades));
+          setPistesDonades(savedState.pistesDonades);
+          setGameWon(savedState.gameWon);
+          setSurrendered(savedState.surrendered);
+        }
+      }
+      
+      // Sincronitzar informació de competició
+      if (e.key === COMPETITION_KEY) {
+        const savedCompInfo = loadCompetitionInfo();
+        if (savedCompInfo && savedCompInfo.rebuscada === rebuscadaActual) {
+          // Una altra pestanya s'ha unit a una competició
+          if (!competitionInfo || competitionInfo.comp_id !== savedCompInfo.comp_id) {
+            console.log('Sincronitzant competició des d\'altra pestanya:', savedCompInfo.comp_id);
+            setCompetitionInfo(savedCompInfo);
+            // Connectar WebSocket en aquesta pestanya també
+            joinCompetitionWebSocket(savedCompInfo.comp_id);
+            // Actualitzar URL per reflectir la competició
+            const urlCompId = getCompIdFromUrl();
+            if (urlCompId !== savedCompInfo.comp_id) {
+              const newUrl = `${window.location.pathname}?comp=${savedCompInfo.comp_id}`;
+              window.history.pushState({}, '', newUrl);
+            }
+          }
+        } else if (!savedCompInfo && competitionInfo) {
+          // Una altra pestanya ha sortit de la competició
+          console.log('Sortint de competició per sincronització amb altra pestanya');
+          if (wsConnection) {
+            wsConnection.close();
+            setWsConnection(null);
+          }
+          setCompetitionInfo(null);
+          setCompetitionPlayers([]);
+          // Eliminar comp_id de la URL
+          const urlCompId = getCompIdFromUrl();
+          if (urlCompId) {
+            const newUrl = window.location.pathname;
+            window.history.pushState({}, '', newUrl);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [currentGameId, rebuscadaActual, competitionInfo, wsConnection]);
 
   const loadCompetitionState = async (compId: string) => {
     try {
@@ -510,6 +807,47 @@ function App() {
     }
   };
 
+  const handleGameChange = (gameId: number) => {
+    // Comprovar si hi ha competició activa
+    if (competitionInfo) {
+      setPendingGameId(gameId);
+      setShowLeaveCompetitionWarning(true);
+    } else {
+      // No hi ha competició, canviar directament
+      const romanId = toRoman(gameId);
+      window.location.href = `?joc=${romanId}`;
+    }
+  };
+
+  const confirmGameChange = async () => {
+    if (pendingGameId && competitionInfo) {
+      // Sortir de la competició
+      try {
+        await fetch(
+          `${SERVER_URL}/competition/${competitionInfo.comp_id}/leave?nom_jugador=${encodeURIComponent(competitionInfo.nom_jugador)}`,
+          { method: 'POST' }
+        );
+      } catch (error) {
+        console.error('Error sortint de competició:', error);
+      }
+
+      // Tancar WebSocket
+      if (wsConnection) {
+        wsConnection.close();
+        setWsConnection(null);
+      }
+
+      // Netejar estat de competició
+      clearCompetitionInfo();
+      setCompetitionInfo(null);
+      setCompetitionPlayers([]);
+
+      // Canviar de joc
+      const romanId = toRoman(pendingGameId);
+      window.location.href = `?joc=${romanId}`;
+    }
+  };
+
   const handleSwitchCompetition = async () => {
     // Sortir de la competició actual
     if (competitionInfo) {
@@ -661,7 +999,6 @@ function App() {
       }
       if (data.es_correcta) {
         setGameWon(true);
-        setParaulaSolucio(data.forma_canonica || data.paraula);
       }
     } catch (err) {
       // Aquest catch és per a errors de xarxa, no per a respostes de l'API
@@ -784,8 +1121,7 @@ function App() {
       setPistesDonades(prev => prev + 1);
 
       if (newGuess.es_correcta) {
-  setGameWon(true);
-  setParaulaSolucio(newGuess.forma_canonica || newGuess.paraula);
+        setGameWon(true);
       }
 
     } catch (err) {
@@ -833,10 +1169,9 @@ function App() {
 
       const data = await response.json();
       
-  setParaulaSolucio(data.paraula_correcta);
       setGameWon(true);
       setLastGuess(null);
-  setSurrendered(true);
+      setSurrendered(true);
 
     } catch (err) {
       if (err instanceof Error) {
@@ -882,7 +1217,9 @@ function App() {
       {!gameWon ? (
         <header className="App-header">
           <div className="input-container">
-            <div className="intent-count">Intents: {intents.length} | Pistes: {pistesDonades}</div>
+            <div className="intent-count">
+              Joc: <strong> {currentGameId ? toRoman(currentGameId) : '-'}</strong> | Intents: {intents.length} | Pistes: {pistesDonades}
+            </div>
             <form onSubmit={handleSubmit}>
               <input id="guess-input"
                 type="text"
@@ -929,14 +1266,30 @@ function App() {
                     className="dropdown-item"
                     onClick={() => {
                       setIsDropdownOpen(false);
+                      if (!isCompetitionAvailable()) {
+                        setError('No es pot crear una competició amb una paraula personalitzada');
+                        return;
+                      }
                       if (competitionInfo) {
                         setShowCompetitionModal(true);
                       } else {
                         setShowCompetitionExplanation(true);
                       }
                     }}
+                    disabled={!isCompetitionAvailable()}
                   >
                     Crea competició
+                  </button>
+                  <button 
+                    type="button"
+                    className="dropdown-item"
+                    onClick={async () => {
+                      setIsDropdownOpen(false);
+                      await loadPreviousGames();
+                      setShowPreviousGames(true);
+                    }}
+                  >
+                    Jocs anteriors
                   </button>
                 </div>
               </div>
@@ -946,9 +1299,9 @@ function App() {
       ) : (
         <div className="game-won">
           {surrendered ? (
-            <h2>T'has rendit. La paraula era: <span className="solution-word" style={{color:'#2c3e50'}}>{paraulaSolucio}</span></h2>
+            <h2>Has abandonat. La paraula era: <span className="solution-word" style={{color:'#2c3e50'}}>{rebuscadaActual}</span></h2>
           ) : (
-            <h2>{paraulaSolucio ? <><span className="solution-word">{paraulaSolucio}</span> era la paraula rebuscada!</> : 'Has encertat la paraula rebuscada!'}</h2>
+            <h2><span className="solution-word">{rebuscadaActual}</span> era la paraula rebuscada!</h2>
           )}
           <div className="stats">
             {(() => {
@@ -972,13 +1325,16 @@ function App() {
                 </ul>
               );
             })()}
-            <p>Total intents: {intents.length} | Pistes utilitzades: {pistesDonades}</p>
+            <p>
+              <strong>Joc: {currentGameId ? toRoman(currentGameId) : '-'}</strong><br />
+              Total intents: {intents.length} | Pistes utilitzades: {pistesDonades}
+            </p>
           </div>
           <div className="win-actions">
-            <button onClick={() => {
-              clearGameState();
-              window.location.reload();
-            }}>Jugar de nou</button>
+            <button onClick={async () => {
+              await loadPreviousGames();
+              setShowPreviousGames(true);
+            }}>Jocs anteriors</button>
             <button onClick={async () => {
               setShowRanking(true);
               if (ranking.length === 0) {
@@ -1192,6 +1548,11 @@ function App() {
                 placeholder="El teu nom..."
                 maxLength={20}
                 autoFocus
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && playerName.trim()) {
+                    handleCreateCompetition();
+                  }
+                }}
               />
               <div className="modal-actions">
                 <button onClick={handleCreateCompetition} disabled={!playerName.trim()}>
@@ -1364,6 +1725,91 @@ function App() {
                 onClick={() => {
                   setShowSwitchCompetition(false);
                   setPendingCompId(null);
+                }} 
+                className="cancel"
+              >
+                Cancel·lar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de jocs anteriors */}
+      {showPreviousGames && (
+        <div className="competition-modal" role="dialog" aria-modal="true">
+          <div className="competition-content">
+            <h3>Jocs anteriors</h3>
+            <button className="close" onClick={() => setShowPreviousGames(false)}>×</button>
+            {previousGames.length === 0 ? (
+              <p>No hi ha jocs anteriors disponibles.</p>
+            ) : (
+              <div className="previous-games-list">
+                {previousGames.map((game) => {
+                  const gameState = loadGameState(game.id);
+                  // Mostrar estat si hi ha gameState i (rendició o guanyat o almenys un intent)
+                  const status = gameState && (gameState.surrendered || gameState.gameWon || gameState.intents.length > 0) ? (
+                    gameState.surrendered ? 'ABANDONAT' : 
+                    gameState.gameWon ? 'TROBADA' : 'EN JOC'
+                  ) : null;
+                  
+                  // Calcular la data del joc
+                  const startDate = game.startDate ? new Date(game.startDate.split('-').reverse().join('-')) : new Date();
+                  const gameDate = new Date(startDate);
+                  gameDate.setDate(gameDate.getDate() + game.id - 1);
+                  const dateStr = gameDate.toLocaleDateString('ca-ES', { 
+                    day: '2-digit', 
+                    month: '2-digit', 
+                    year: 'numeric' 
+                  });
+                  
+                  return (
+                    <div 
+                      key={game.id} 
+                      className="previous-game-item"
+                      onClick={() => handleGameChange(game.id)}
+                    >
+                      <div className="game-id">
+                        <strong>#{toRoman(game.id)}</strong>
+                      </div>
+                      <div className="game-date">{dateStr}</div>
+                      {status && (
+                        <div className={`game-status status-${status.toLowerCase()}`}>
+                          {status}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            <div className="modal-actions">
+              <button onClick={() => setShowPreviousGames(false)}>Tancar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal advertència sortir de competició en canviar de joc */}
+      {showLeaveCompetitionWarning && (
+        <div className="competition-modal" role="dialog" aria-modal="true">
+          <div className="competition-content">
+            <h3>Sortir de la competició?</h3>
+            <p>
+              Estàs participant en una competició. Si canvies de joc, sortiràs de la competició
+              i els altres jugadors ja no veuran el teu progrés.
+            </p>
+            <p>
+              Les paraules que has endevinat es mantindran.
+            </p>
+            <div className="modal-actions">
+              <button onClick={confirmGameChange} className="danger">
+                Sortir i canviar de joc
+              </button>
+              <button 
+                onClick={() => {
+                  setShowLeaveCompetitionWarning(false);
+                  setPendingGameId(null);
                 }} 
                 className="cancel"
               >
