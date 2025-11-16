@@ -73,6 +73,7 @@ const SERVER_URL = process.env.REACT_APP_SERVER_URL || 'http://localhost:8000';
 const GAMES_STATE_KEY = 'rebuscada-games-state'; // Ara guarda tots els jocs
 const COMPETITION_KEY = 'rebuscada-competition';
 const CURRENT_GAME_ID_KEY = 'rebuscada-current-game-id';
+const VERSION_KEY = 'rebuscada-api-version';
 
 // Converteix un número a números romans
 function toRoman(num: number): string {
@@ -393,6 +394,39 @@ function App() {
   // Inicialitzar l'estat del joc
   useEffect(() => {
     const initializeGame = async () => {
+      // Comprovar versió de l'API abans de res
+      try {
+        const versionResponse = await fetch(`${SERVER_URL}/version`);
+        if (versionResponse.ok) {
+          const { version } = await versionResponse.json();
+          const savedVersion = localStorage.getItem(VERSION_KEY);
+          
+          // Si hi ha versió guardada i és diferent, netejar i recarregar
+          if (savedVersion && savedVersion !== version) {
+            console.warn(`⚠️ Versió de l'API canviada: ${savedVersion} → ${version}`);
+            console.warn('Netejant localStorage i recarregant...');
+            
+            // Netejar localStorage
+            localStorage.clear();
+            
+            // Forçar recàrrega immediata (sense cache)
+            window.location.reload();
+            
+            // No continuar amb la inicialització
+            return;
+          }
+          
+          // Guardar/actualitzar versió actual
+          if (!savedVersion) {
+            console.log(`✓ Primera càrrega - versió API: ${version}`);
+          }
+          localStorage.setItem(VERSION_KEY, version);
+        }
+      } catch (error) {
+        // Si falla la comprovació de versió, continuar igualment
+        console.warn('No s\'ha pogut comprovar la versió de l\'API:', error);
+      }
+
       // Obtenir el joc actual
       const gameInfo = await getCurrentGame();
       
