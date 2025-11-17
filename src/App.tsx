@@ -296,6 +296,14 @@ function App() {
       const response = await fetch(`${SERVER_URL}/public-games`);
       if (response.ok) {
         const data = await response.json();
+        const currentGameId = data.currentGameId || 1;
+        
+        // Validar que no es pugui jugar a jocs futurs
+        if (gameId > currentGameId) {
+          setError(`El joc #${toRoman(gameId)} encara no està disponible. Només pots jugar fins al joc #${toRoman(currentGameId)}.`);
+          return null;
+        }
+        
         const game = data.games.find((g: any) => g.id === gameId);
         return game ? { 
           id: game.id, 
@@ -432,6 +440,10 @@ function App() {
       
       if (!gameInfo) {
         console.error('No s\'ha pogut obtenir el joc actual');
+        // Si hi ha un error (potser joc futur), redirigir al joc del dia
+        if (getGameIdFromUrl()) {
+          window.location.href = window.location.pathname;
+        }
         return;
       }
       
