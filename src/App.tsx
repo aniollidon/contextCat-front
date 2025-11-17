@@ -1564,7 +1564,7 @@ function App() {
             className="add-players-btn"
             onClick={() => setShowCompetitionModal(true)}
           >
-            + Afegiu jugadors
+            + Afegeix jugadors
           </button>
         </div>
       )}
