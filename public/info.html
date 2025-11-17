@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ca">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Com s'hi juga - Rebuscada</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+                "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+                sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        h1 {
+            color: #2c3e50;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: #3498db;
+            text-decoration: none;
+            margin-bottom: 1rem;
+            font-size: 0.95rem;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        section {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            color: #2c3e50;
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 0.5rem;
+        }
+
+        h3 {
+            color: #34495e;
+            font-size: 1.3rem;
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        p {
+            margin-bottom: 1rem;
+        }
+
+        ul,
+        ol {
+            margin-bottom: 1rem;
+            padding-left: 2rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        .color-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .color-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .color-box {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            border: 2px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .example-box {
+            background: #f8f9fa;
+            border-left: 4px solid #3498db;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 4px;
+        }
+
+        .credits-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .credits-list li {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .credits-list li:last-child {
+            border-bottom: none;
+        }
+
+        .credits-list strong {
+            color: #2c3e50;
+            display: inline-block;
+            min-width: 150px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem 0;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            h2 {
+                font-size: 1.5rem;
+            }
+
+            section {
+                padding: 1.5rem;
+            }
+
+            .color-legend {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Torna al joc</a>
+
+        <header>
+            <h1>Rebuscada</h1>
+        </header>
+
+        <section>
+            <h2>Com s'hi juga?</h2>
+
+            <h3>Objectiu del joc</h3>
+            <p>L'objectiu és endevinar la <strong>paraula rebuscada</strong> (posició #0) amb els mínims intents
+                possibles. Cada paraula té una <strong>posició</strong> segons la proximitat semàntica amb la paraula
+                zero. Cada dia hi ha una paraula nova
+                per descobrir!</p>
+            <p>La rebuscada només pot ser un verb o un nom comú.</p>
+            <h4> Què és la proximitat semàntica?</h4>
+            <p>És una mesura de la similitud del significat entre
+                paraules. Un algoritme semisupervisat ha ordenat els noms i verbs del diccionari català segons
+                aquesta mesura. Per exemple un sinònim, un antònim o un hipònim estarà en les posicions més baixes,
+                mentre que una paraula no que hi té cap relació estarà en posicions molt allunyades.</p>
+            <p> Podeu començar amb una paraula aleatòria, sempre sereu a temps de demanar una <strong>
+                    pista</strong> si us encalleu.</p>
+
+
+            <h3>Mecànica del joc</h3>
+            <ol>
+                <li><strong>Escriviu paraules relacionades</strong> semànticament amb la paraula rebuscada.</li>
+                <li>Cada paraula que introduïu rebrà una <strong>posició numèrica</strong> que indica la proximitat
+                    semàntica amb la paraula objectiu.</li>
+                <li>Com més <strong>baixa és la posició</strong>, més a prop esteu de la solució. La paraula #0 és la
+                    correcta!</li>
+                <li>Utilitzeu els colors i les posicions per ajustar la vostra estratègia i trobar la paraula.</li>
+            </ol>
+
+            <h3>Sistema de colors</h3>
+            <p>Els colors us indiquen visualment com d'a prop esteu de la solució:</p>
+
+            <div class="color-legend">
+                <div class="color-item">
+                    <span class="color-box" style="background: #4caf50;"></span>
+                    <span><strong>Molt a prop</strong> (posició &lt;100)</span>
+                </div>
+                <div class="color-item">
+                    <span class="color-box" style="background: #ffc107;"></span>
+                    <span><strong>A prop</strong> (posició 100-249)</span>
+                </div>
+                <div class="color-item">
+                    <span class="color-box" style="background: #ff9800;"></span>
+                    <span><strong>Regular</strong> (posició 250-499)</span>
+                </div>
+                <div class="color-item">
+                    <span class="color-box" style="background: #f44336;"></span>
+                    <span><strong>Lluny</strong> (posició 500-1999)</span>
+                </div>
+                <div class="color-item">
+                    <span class="color-box" style="background: #b71c1c;"></span>
+                    <span><strong>Molt lluny</strong> (posició ≥2000)</span>
+                </div>
+            </div>
+
+            <div class="example-box">
+                <strong>Exemple:</strong> Si la paraula rebuscada és "roure" i escriviu "arbre", podria tenir la posició
+                #7 (molt a prop). Si escriviu "natura", podria ser #150 (a prop). Si escriviu "pantalla", podria ser
+                #5000 (molt lluny).
+            </div>
+
+            <h3>Funcionalitats addicionals</h3>
+            <ul>
+                <li><strong>Pistes:</strong> Si us encalleu, podeu demanar una pista. Això us donarà una paraula
+                    relacionada amb la solució.</li>
+                <li><strong>Mode competitiu:</strong> Creeu una competició i compartiu l'enllaç amb els amics per veure
+                    qui troba la paraula amb menys intents!</li>
+                <li><strong>Jocs anteriors:</strong> Podeu jugar als jocs de dies anteriors.</li>
+
+            </ul>
+
+            <h3>Consells</h3>
+            <ul>
+                <li>Començeu amb paraules generals per entendre el camp semàntic.</li>
+                <li>Fixeu-vos en els patrons: si "fruit" està molt a prop, proveu tipus específics de fruites.</li>
+                <li>Les formes canòniques (arrels de paraules) es conten com la mateixa paraula.</li>
+                <li>No tingueu por d'experimentar amb sinònims i paraules relacionades!</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>Crèdits</h2>
+
+            <ul class="credits-list">
+                <li><strong>Desenvolupament:</strong> Aniol Lidon Baulida</li>
+                <li><strong>Revisió de jocs:</strong> Feliu Pasto Cabañas</li>
+                <li><strong>Model semàntic:</strong> <a href="https://fasttext.cc/">FastText</a> (Facebook Research)
+                </li>
+                <li><strong>Diccionari:</strong> <a href="https://github.com/Softcatala/catalan-dict-tools">Diccionari
+                        del Softcatalà</a> a partir de les dades del <a href="https://dlc.iec.cat/">DIEC2</a>
+                </li>
+                <li><strong>Inspirat en:</strong> Contexto i Semantle</li>
+            </ul>
+
+            <h3>Agraïments</h3>
+            <p>Gràcies sobretot a la gent de <a href="https://www.softcatala.org/">Softcatalà</a> per disposar de
+                recursos lingüístics de qualitat en obert. A la Bet Dalmau per pensar el nom i a tots aquells que ho
+                heu anat provant.</p>
+
+            <h3>Codi obert</h3>
+            <p>Aquest projecte és de codi obert. Si voleu contribuir o reportar un error, visiteu el repositori a
+                <a href="https://github.com/aniollidon/rebuscada">GitHub</a>.
+            </p>
+        </section>
+
+        <footer>
+            <p>© 2025 Rebuscada - Joc de paraules en català</p>
+            <p>Fet amb 💙 per a qui hi vulgui jugar.</p>
+        </footer>
+    </div>
+</body>
+
+</html>

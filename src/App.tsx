@@ -1337,6 +1337,14 @@ function App() {
                   >
                     Jocs anteriors
                   </button>
+                  <a 
+                    href="/info.html"
+                    rel="noopener noreferrer"
+                    className="dropdown-item dropdown-link"
+                    onClick={() => setIsDropdownOpen(false)}
+                  >
+                    Com s'hi juga?
+                  </a>
                 </div>
               </div>
             </form>
@@ -1433,6 +1441,17 @@ function App() {
         </div>
       )}
       <div className="intents">
+        {!gameWon && intents.length === 0 && !error && !lastGuess && (
+          <div className="game-instructions">
+            <h3>Com s'hi juga?</h3>
+            <ul>
+              <li>L'objectiu és endevinar la <strong>paraula rebuscada</strong> (posició #0) amb els mínims intents possibles. Cada paraula té una <strong>posició</strong> segons la proximitat semàntica amb la paraula zero.</li>
+              <li>La rebuscada només pot ser un verb o un nom comú.</li>
+              <li><strong> Què és la proximitat semàntica?</strong> És una mesura de la similitud del significat entre paraules. Un algoritme semisupervisat ha ordenat els noms i verbs del diccionari català segons aquesta mesura. Per exemple un sinònim, un antònim o un hipònim estarà en les posicions més baixes, mentre que una paraula no que hi té cap relació estarà en posicions molt allunyades.</li>
+              <li> Podeu començar amb una paraula aleatòria, sempre sereu a temps de demanar una <strong> pista</strong> si us encalleu.</li>
+            </ul>
+          </div>
+        )}
         {!gameWon && (
           <div className="last-guess">
             {error ? (
