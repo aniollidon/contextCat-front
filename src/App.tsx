@@ -300,7 +300,7 @@ function App() {
         
         // Validar que no es pugui jugar a jocs futurs
         if (gameId > currentGameId) {
-          setError(`El joc #${toRoman(gameId)} encara no està disponible. Només pots jugar fins al joc #${toRoman(currentGameId)}.`);
+          setError(`El joc #${toRoman(gameId)} encara no està disponible. Només podeu jugar fins al joc #${toRoman(currentGameId)}.`);
           return null;
         }
         
@@ -352,7 +352,7 @@ function App() {
         }
       } catch (error) {
         console.error('Error amb paraula personalitzada:', error);
-        setError(`Error amb la paraula personalitzada: ${error instanceof Error ? error.message : 'Paraula no vàlida'}`);
+        setError(`Hi ha un error amb la paraula personalitzada: ${error instanceof Error ? error.message : 'Paraula no vàlida'}`);
         return null;
       }
     }
@@ -712,7 +712,7 @@ function App() {
 
   const handleCreateCompetition = async () => {
     if (!playerName.trim()) {
-      setError('Has d\'introduir un nom');
+      setError('Introduïu un nom');
       return;
     }
 
@@ -758,7 +758,7 @@ function App() {
       setShowCompetitionExplanation(false);
       setShowCompetitionModal(true);
     } catch (error) {
-      setError('Error creant la competició');
+      setError('Hi ha un error en crear la competició');
       console.error(error);
     }
   };
@@ -782,7 +782,7 @@ function App() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || 'No s\'ha pogut unir a la competició');
+        throw new Error(errorData.detail || 'Hi ha un error en unir-se a la competició');
       }
 
       const data = await response.json();
@@ -812,7 +812,7 @@ function App() {
       if (error instanceof Error) {
         setError(error.message);
       } else {
-        setError('Error unint-se a la competició');
+        setError('Hi ha un error en unir-se a la competició');
       }
       console.error(error);
     }
@@ -848,7 +848,7 @@ function App() {
 
       setShowLeaveConfirm(false);
     } catch (error) {
-      setError('Error sortint de la competició');
+      setError('Hi ha un error en sortir de la competició');
       console.error(error);
     }
   };
@@ -1140,7 +1140,7 @@ function App() {
 
       if (!response.ok) {
         const errorData = data as any;
-        setError(errorData.detail || 'Error en demanar la pista');
+        setError(errorData.detail || 'Hi ha un error en demanar la pista');
         setLastGuess(null);
         return;
       }
@@ -1210,7 +1210,7 @@ function App() {
       });
 
       if (!response.ok) {
-        throw new Error('Error en rendir-se');
+        throw new Error('Hi ha un error en abandonar');
       }
 
       const data = await response.json();
@@ -1273,12 +1273,12 @@ function App() {
                 onChange={(e) => setGuess(e.target.value)}
                 ref={inputRef}
                 onFocus={handleInputFocus}
-                placeholder="Escriu una paraula..."
+                placeholder="Escriviu una paraula..."
                 disabled={gameWon}
                 autoComplete="off"
               />
               <button type="submit" disabled={gameWon}>
-                Comprovar
+                Comprova
               </button>
               <div className="dropdown-menu">
                 <button 
@@ -1564,7 +1564,7 @@ function App() {
             className="add-players-btn"
             onClick={() => setShowCompetitionModal(true)}
           >
-            + Afegir jugadors
+            + Afegiu jugadors
           </button>
         </div>
       )}
@@ -1577,21 +1577,21 @@ function App() {
             <button className="close" onClick={() => setShowCompetitionExplanation(false)}>×</button>
             <div className="explanation-text">
               <p>
-                El <strong>mode competitiu</strong> et permet competir amb els teus amics per veure qui 
+                El <strong>mode competitiu</strong> us permet competir amb els amics per veure qui 
                 troba la paraula rebuscada amb menys intents!
               </p>
               <ul>
                 <li>Es juga amb la paraula del dia actual</li>
-                <li>Comparteix l'enllaç amb els teus amics</li>
-                <li>Veuràs els seus progressos en temps real</li>
-                <li>Si ja estaves jugant, els teus intents es mantenen</li>
+                <li>Compartiu l'enllaç amb els amics</li>
+                <li>Veureu els progressos en temps real</li>
+                <li>Si ja estàveu jugant, els intents es mantenen</li>
               </ul>
-              <p>Escriu el teu nom per començar:</p>
+              <p>Escriviu el nom per començar:</p>
               <input
                 type="text"
                 value={playerName}
                 onChange={(e) => setPlayerName(e.target.value)}
-                placeholder="El teu nom..."
+                placeholder="Nom..."
                 maxLength={20}
                 autoFocus
                 onKeyPress={(e) => {
@@ -1602,10 +1602,10 @@ function App() {
               />
               <div className="modal-actions">
                 <button onClick={handleCreateCompetition} disabled={!playerName.trim()}>
-                  Crear Competició
+                  Crea la competició
                 </button>
                 <button onClick={() => setShowCompetitionExplanation(false)} className="cancel">
-                  Cancel·lar
+                  Cancel·la
                 </button>
               </div>
             </div>
@@ -1617,10 +1617,10 @@ function App() {
       {showCompetitionModal && competitionInfo && (
         <div className="competition-modal" role="dialog" aria-modal="true">
           <div className="competition-content share-link-modal">
-            <h3> Comparteix per competir</h3>
+            <h3>Compartiu per competir</h3>
             <button className="close" onClick={() => setShowCompetitionModal(false)}>×</button>
             <p className="share-instructions">
-              Envia aquest enllaç als teus amics perquè puguin unir-se a la competició:
+              Envieu aquest enllaç als amics perquè puguin unir-se a la competició:
             </p>
             <div className="competition-link">
               <input
@@ -1655,13 +1655,13 @@ function App() {
                       <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1z"/>
                       <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0z"/>
                     </svg>
-                    <span>Copiar</span>
+                    <span>Copia</span>
                   </>
                 )}
               </button>
             </div>
             <button onClick={() => setShowCompetitionModal(false)} className="ok-button">
-              D'acord
+              Tanca
             </button>
           </div>
         </div>
@@ -1673,7 +1673,7 @@ function App() {
           <div className="competition-content">
             <h3>Competició caducada</h3>
             <p>
-              La competició a la que vols accedir ha caducat. Ens sap greu...
+              La competició a la qual voleu accedir ha caducat.
             </p>
             <div className="modal-actions">
               <button
@@ -1684,7 +1684,7 @@ function App() {
                 }}
                 className="primary"
               >
-                Juga en mode normal
+                Continua en mode normal
               </button>
             </div>
           </div>
@@ -1696,7 +1696,7 @@ function App() {
         <div className="competition-modal" role="dialog" aria-modal="true">
           <div className="competition-content">
             <h3>Unir-se a Competició</h3>
-            <p>Introdueix el teu nom per unir-te a aquesta competició:</p>
+            <p>Introduïu el nom per unir-vos a aquesta competició:</p>
             {error && <div className="error">{error}</div>}
             <input
               type="text"
@@ -1705,7 +1705,7 @@ function App() {
                 setPlayerName(e.target.value);
                 setError(null); // Netejar error quan l'usuari escriu
               }}
-              placeholder="El teu nom..."
+              placeholder="Nom..."
               maxLength={20}
               autoFocus
               onKeyPress={(e) => {
@@ -1727,7 +1727,7 @@ function App() {
                 }}
                 disabled={!playerName.trim()}
               >
-                Unir-se
+                Uneix-me
               </button>
             </div>
           </div>
@@ -1740,15 +1740,15 @@ function App() {
           <div className="competition-content">
             <h3>Sortir de la competició?</h3>
             <p>
-              Si surts de la competició, els altres jugadors ja no veuran el teu progrés.
-              Les paraules que has endevinat es mantindran.
+              Si sortiu de la competició, els altres jugadors ja no veuran el progrés.
+              Les paraules que heu endevinat es mantindran.
             </p>
             <div className="modal-actions">
               <button onClick={handleLeaveCompetition} className="danger">
-                Sortir
+                Surt
               </button>
               <button onClick={() => setShowLeaveConfirm(false)} className="cancel">
-                Cancel·lar
+                Cancel·la
               </button>
             </div>
           </div>
@@ -1761,11 +1761,11 @@ function App() {
           <div className="competition-content">
             <h3>Canviar de competició?</h3>
             <p>
-              Ja estàs participant en una competició. Vols sortir-ne i unir-te a aquesta nova competició?
+              Ja esteu participant en una competició. Voleu sortir-ne i unir-vos a aquesta nova competició?
             </p>
             <div className="modal-actions">
               <button onClick={handleSwitchCompetition}>
-                Canviar
+                Canvia
               </button>
               <button 
                 onClick={() => {
@@ -1774,7 +1774,7 @@ function App() {
                 }} 
                 className="cancel"
               >
-                Cancel·lar
+                Cancel·la
               </button>
             </div>
           </div>
@@ -1830,7 +1830,7 @@ function App() {
               </div>
             )}
             <div className="modal-actions">
-              <button onClick={() => setShowPreviousGames(false)}>Tancar</button>
+              <button onClick={() => setShowPreviousGames(false)}>Tanca</button>
             </div>
           </div>
         </div>
@@ -1842,15 +1842,15 @@ function App() {
           <div className="competition-content">
             <h3>Sortir de la competició?</h3>
             <p>
-              Estàs participant en una competició. Si canvies de joc, sortiràs de la competició
-              i els altres jugadors ja no veuran el teu progrés.
+              Esteu participant en una competició. Si canvieu de joc, sortireu de la competició
+              i els altres jugadors ja no veuran el progrés.
             </p>
             <p>
-              Les paraules que has endevinat es mantindran.
+              Les paraules que heu endevinat es mantindran.
             </p>
             <div className="modal-actions">
               <button onClick={confirmGameChange} className="danger">
-                Sortir i canviar de joc
+                Surt i canvia de joc
               </button>
               <button 
                 onClick={() => {
@@ -1859,7 +1859,7 @@ function App() {
                 }} 
                 className="cancel"
               >
-                Cancel·lar
+                Cancel·la
               </button>
             </div>
           </div>
