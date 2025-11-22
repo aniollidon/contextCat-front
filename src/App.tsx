@@ -327,32 +327,20 @@ function App() {
         // Descodificar base64
         const decodedWord = atob(customWord);
         
-        // Validar la paraula fent una petició al servidor
-        const response = await fetch(`${SERVER_URL}/guess`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            paraula: decodedWord,
-            rebuscada: decodedWord 
-          })
-        });
+        // Per paraules personalitzades, assumim que són vàlides
+        // (si l'usuari té l'enllaç, hauria de poder jugar-hi)
+        // No fem validació prèvia per evitar errors de "joc no disponible"
+        console.log('Mode paraula personalitzada:', decodedWord);
         
-        if (response.ok) {
-          // La paraula és vàlida, retornar com a GameInfo
-          return {
-            id: 0, // ID especial per paraules personalitzades
-            name: decodedWord,
-            startDate: new Date().toLocaleDateString('ca-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }).split('/').join('-'),
-            today: new Date().toLocaleDateString('ca-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }).split('/').join('-')
-          };
-        } else {
-          // Paraula no vàlida
-          const errorData = await response.json();
-          throw new Error(errorData.detail || 'La paraula no és vàlida');
-        }
+        return {
+          id: 0, // ID especial per paraules personalitzades
+          name: decodedWord,
+          startDate: new Date().toLocaleDateString('ca-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }).split('/').join('-'),
+          today: new Date().toLocaleDateString('ca-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }).split('/').join('-')
+        };
       } catch (error) {
-        console.error('Error amb paraula personalitzada:', error);
-        setError(`Hi ha un error amb la paraula personalitzada: ${error instanceof Error ? error.message : 'Paraula no vàlida'}`);
+        console.error('Error descodificant paraula personalitzada:', error);
+        setError(`Hi ha un error amb la paraula personalitzada: No s'ha pogut descodificar`);
         return null;
       }
     }
