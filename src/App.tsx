@@ -1373,29 +1373,37 @@ function App() {
             </p>
           </div>
           <div className="win-actions">
-            <button onClick={async () => {
-              await loadPreviousGames();
-              setShowPreviousGames(true);
-            }}>Jocs anteriors</button>
-            <button onClick={async () => {
-              setShowRanking(true);
-              if (ranking.length === 0) {
-                setLoadingRanking(true);
-                setRankingError(null);
-                try {
-                  const params = rebuscadaActual && rebuscadaActual !== 'default' ? `?rebuscada=${encodeURIComponent(rebuscadaActual)}` : '';
-                  const resp = await fetch(`${SERVER_URL}/ranking${params}`);
-                  if (!resp.ok) throw new Error('No s\'ha pogut obtenir el rànquing');
-                  const data = await resp.json();
-                  setRanking(data.ranking || []);
-                  setRankingTotal(data.total_paraules || null);
-                } catch (e: any) {
-                  setRankingError(e.message);
-                } finally {
-                  setLoadingRanking(false);
-                }
-              }
-            }}>Veure top 300</button>
+            {getWordFromUrl() ? (
+              <button onClick={() => {
+                window.location.href = window.location.pathname;
+              }}>Torna a jugar</button>
+            ) : (
+              <>
+                <button onClick={async () => {
+                  await loadPreviousGames();
+                  setShowPreviousGames(true);
+                }}>Jocs anteriors</button>
+                <button onClick={async () => {
+                  setShowRanking(true);
+                  if (ranking.length === 0) {
+                    setLoadingRanking(true);
+                    setRankingError(null);
+                    try {
+                      const params = rebuscadaActual && rebuscadaActual !== 'default' ? `?rebuscada=${encodeURIComponent(rebuscadaActual)}` : '';
+                      const resp = await fetch(`${SERVER_URL}/ranking${params}`);
+                      if (!resp.ok) throw new Error('No s\'ha pogut obtenir el rànquing');
+                      const data = await resp.json();
+                      setRanking(data.ranking || []);
+                      setRankingTotal(data.total_paraules || null);
+                    } catch (e: any) {
+                      setRankingError(e.message);
+                    } finally {
+                      setLoadingRanking(false);
+                    }
+                  }
+                }}>Veure top 300</button>
+              </>
+            )}
           </div>
           {showRanking && (
             <div className="ranking-modal" role="dialog" aria-modal="true">

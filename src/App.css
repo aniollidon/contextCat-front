@@ -1167,6 +1167,8 @@ form button[type="submit"] {
 .previous-games-list {
   max-height: 400px;
   margin: 1rem 0;
+  overflow-y: auto;
+  overflow-x: clip;
 }
 
 .previous-game-item {
