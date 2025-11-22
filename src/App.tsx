@@ -1375,35 +1375,39 @@ function App() {
           <div className="win-actions">
             {getWordFromUrl() ? (
               <button onClick={() => {
-                window.location.href = window.location.pathname;
+                // Esborrar estat del joc abans de recarregar
+                if (currentGameId !== null) {
+                  const allGames = loadAllGamesState();
+                  delete allGames[currentGameId];
+                  localStorage.setItem(GAMES_STATE_KEY, JSON.stringify(allGames));
+                }
+                window.location.reload();
               }}>Torna a jugar</button>
             ) : (
-              <>
-                <button onClick={async () => {
-                  await loadPreviousGames();
-                  setShowPreviousGames(true);
-                }}>Jocs anteriors</button>
-                <button onClick={async () => {
-                  setShowRanking(true);
-                  if (ranking.length === 0) {
-                    setLoadingRanking(true);
-                    setRankingError(null);
-                    try {
-                      const params = rebuscadaActual && rebuscadaActual !== 'default' ? `?rebuscada=${encodeURIComponent(rebuscadaActual)}` : '';
-                      const resp = await fetch(`${SERVER_URL}/ranking${params}`);
-                      if (!resp.ok) throw new Error('No s\'ha pogut obtenir el rànquing');
-                      const data = await resp.json();
-                      setRanking(data.ranking || []);
-                      setRankingTotal(data.total_paraules || null);
-                    } catch (e: any) {
-                      setRankingError(e.message);
-                    } finally {
-                      setLoadingRanking(false);
-                    }
-                  }
-                }}>Veure top 300</button>
-              </>
+              <button onClick={async () => {
+                await loadPreviousGames();
+                setShowPreviousGames(true);
+              }}>Jocs anteriors</button>
             )}
+            <button onClick={async () => {
+              setShowRanking(true);
+              if (ranking.length === 0) {
+                setLoadingRanking(true);
+                setRankingError(null);
+                try {
+                  const params = rebuscadaActual && rebuscadaActual !== 'default' ? `?rebuscada=${encodeURIComponent(rebuscadaActual)}` : '';
+                  const resp = await fetch(`${SERVER_URL}/ranking${params}`);
+                  if (!resp.ok) throw new Error('No s\'ha pogut obtenir el rànquing');
+                  const data = await resp.json();
+                  setRanking(data.ranking || []);
+                  setRankingTotal(data.total_paraules || null);
+                } catch (e: any) {
+                  setRankingError(e.message);
+                } finally {
+                  setLoadingRanking(false);
+                }
+              }
+            }}>Veure top 300</button>
           </div>
           {showRanking && (
             <div className="ranking-modal" role="dialog" aria-modal="true">
