@@ -975,6 +975,10 @@ function App() {
         requestBody.comp_id = competitionInfo.comp_id;
         requestBody.nom_jugador = competitionInfo.nom_jugador;
       }
+      // Si hi ha paraula personalitzada, indicar-ho al servidor
+      if (getWordFromUrl()) {
+        requestBody.es_personalitzada = true;
+      }
 
       const response = await fetch(`${SERVER_URL}/guess`, {
         method: 'POST',
@@ -1062,6 +1066,10 @@ function App() {
         if (rebuscadaActual && rebuscadaActual !== 'default') {
           requestBody.rebuscada = rebuscadaActual;
         }
+        // Si hi ha paraula personalitzada, indicar-ho al servidor
+        if (getWordFromUrl()) {
+          requestBody.es_personalitzada = true;
+        }
 
         const response = await fetch(`${SERVER_URL}/whynot`, {
           method: 'POST',
@@ -1117,6 +1125,10 @@ function App() {
       if (competitionInfo) {
         requestBody.comp_id = competitionInfo.comp_id;
         requestBody.nom_jugador = competitionInfo.nom_jugador;
+      }
+      // Si hi ha paraula personalitzada, indicar-ho al servidor
+      if (getWordFromUrl()) {
+        requestBody.es_personalitzada = true;
       }
 
       const response = await fetch(`${SERVER_URL}/pista`, {
@@ -1187,6 +1199,10 @@ function App() {
       if (competitionInfo) {
         requestBody.comp_id = competitionInfo.comp_id;
         requestBody.nom_jugador = competitionInfo.nom_jugador;
+      }
+      // Si hi ha paraula personalitzada, indicar-ho al servidor
+      if (getWordFromUrl()) {
+        requestBody.es_personalitzada = true;
       }
 
       const response = await fetch(`${SERVER_URL}/rendirse`, {
